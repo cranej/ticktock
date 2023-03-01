@@ -13,7 +13,7 @@ type UnfinishedEntry struct {
 type Store interface {
 	Start(*UnfinishedEntry) error
 	StartTitle(string, string) error
-	Finish(string) error
+	FinishLatest(string) (string, error)
 }
 
 func NewSqliteStore(db string) (Store, error) {
