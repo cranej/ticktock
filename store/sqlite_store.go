@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
+	"time"
 )
 
 type Sqlite struct {
@@ -10,10 +11,24 @@ type Sqlite struct {
 }
 
 func (s *Sqlite) Start(entry *UnfinishedEntry) error {
-	return nil
+	_, err := s.db.Exec(`INSERT INTO clocking (title, start, notes)
+	VALUES(?,?,?)`,
+		entry.Title,
+		entry.Start.Format(time.RFC3339),
+		entry.Notes)
+
+	return err
 }
 
 func (s *Sqlite) StartTitle(title, notes string) error {
+	return s.Start(&UnfinishedEntry{
+		Title: title,
+		Start: time.Now().UTC(),
+		Notes: notes,
+	})
+}
+
+func (s *Sqlite) Finish(title string) error {
 	return nil
 }
 

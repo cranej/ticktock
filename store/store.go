@@ -6,13 +6,14 @@ import (
 
 type UnfinishedEntry struct {
 	Title string
-	Start *time.Time
+	Start time.Time
 	Notes string
 }
 
 type Store interface {
 	Start(*UnfinishedEntry) error
 	StartTitle(string, string) error
+	Finish(string) error
 }
 
 func NewSqliteStore(db string) (Store, error) {
