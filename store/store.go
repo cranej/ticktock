@@ -14,6 +14,7 @@ type Store interface {
 	Start(*UnfinishedEntry) error
 	StartTitle(string, string) error
 	FinishLatest(string) (string, error)
+	RecentTitles(uint8) ([]string, error)
 }
 
 func NewSqliteStore(db string) (Store, error) {

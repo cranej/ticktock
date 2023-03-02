@@ -79,6 +79,30 @@ func (s *Sqlite) FinishLatest(notes string) (string, error) {
 	return title, nil
 }
 
+func (s *Sqlite) RecentTitles(limit uint8) ([]string, error) {
+	rows, err := s.db.Query(`SELECT title, max(start)
+		FROM clocking
+		where end is not null
+		group by title
+		order by max(start) desc limit ?`,
+		limit)
+	if err != nil {
+		return nil, err
+	}
+
+	titles := make([]string, 0)
+	for rows.Next() {
+		var title, start string
+		if err := rows.Scan(&title, &start); err != nil {
+			return nil, err
+		}
+
+		titles = append(titles, title)
+	}
+
+	return titles, nil
+}
+
 func newSqlite(db string) (Sqlite, error) {
 	pool, err := sql.Open("sqlite3", db)
 	if err != nil {

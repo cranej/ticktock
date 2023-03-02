@@ -10,8 +10,8 @@ import (
 
 type StartCmd struct {
 	Wait  bool   `short:"w" help:"If set, wait for notes input until Ctrl-D, then finish the ticktock"`
-	Title string `arg:"" name:"title" help:"the title of the ticktock"`
-	Notes string `help:"comments of the ticktock"`
+	Title string `arg:"" name:"title" help:"The title of the ticktock"`
+	Notes string `help:"Notes of the ticktock"`
 }
 
 func (c *StartCmd) Run(ss store.Store) error {
@@ -40,11 +40,22 @@ func (c *StartCmd) Run(ss store.Store) error {
 }
 
 type FinishCmd struct {
-	Notes string `help:"comments to appends"`
+	Notes []string `help:"Notes to appends, each input as a line. If a single '-' specified, read from stdin."`
 }
 
 func (c *FinishCmd) Run(ss store.Store) error {
-	r, err := ss.FinishLatest(c.Notes)
+	var notes string
+	var err error
+	if len(c.Notes) == 1 && c.Notes[0] == "-" {
+		notes, err = readToEOF()
+		if err != nil {
+			return err
+		}
+	} else if len(c.Notes) > 1 {
+		notes = strings.Join(c.Notes, "\n")
+	}
+
+	r, err := ss.FinishLatest(notes)
 	if err != nil {
 		return err
 	}
@@ -57,10 +68,41 @@ func (c *FinishCmd) Run(ss store.Store) error {
 	return nil
 }
 
+type TitlesCmd struct {
+	Limit uint8 `short:"n" help:"Number of titles to display, default 5"`
+	Index bool  `short:"i" help:"If set, prefix titles with index starts from 1"`
+}
+
+func (c *TitlesCmd) Run(ss store.Store) error {
+	limit := uint8(5)
+	if c.Limit > 0 {
+		limit = c.Limit
+	}
+
+	titles, err := ss.RecentTitles(limit)
+	if err != nil {
+		return err
+	}
+
+	var f func(int, string)
+	if c.Index {
+		f = func(i int, title string) { fmt.Printf("%d: %s\n", i+1, title) }
+	} else {
+		f = func(i int, title string) { fmt.Println(title) }
+	}
+
+	for i, t := range titles {
+		f(i, t)
+	}
+
+	return nil
+}
+
 var Cli struct {
-	Db     string    `required:"" type:"path" help:"path of the db file"`
-	Start  StartCmd  `cmd:"" help:"start a ticktock"`
-	Finish FinishCmd `cmd: "" help:"finish the ongoing ticktock"`
+	Db     string    `required:"" type:"path" help:"Path of the db file"`
+	Start  StartCmd  `cmd:"" help:"Start a ticktock"`
+	Finish FinishCmd `cmd:"" help:"Finish the ongoing ticktock"`
+	Titles TitlesCmd `cmd:"" help:"Print recent finished titles"`
 }
 
 func readToEOF() (string, error) {
