@@ -19,7 +19,7 @@ func (s *Sqlite) Start(entry *UnfinishedEntry) error {
 
 	var count uint
 	row := s.db.QueryRow(`select count(1) from clocking
-		where title = ? and end is null`,
+		where end is null`,
 		entry.Title)
 	if err := row.Scan(&count); err != nil {
 		return err
