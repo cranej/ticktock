@@ -6,16 +6,32 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"errors"
+	"strconv"
 )
+
+var Cli struct {
+	Db      string     `required:"" env:"TICKTOCK_DB" type:"path" help:"Path of the db file"`
+	Start   StartCmd   `cmd:"" help:"Start a ticktock"`
+	Finish  FinishCmd  `cmd:"" help:"Finish the ongoing ticktock"`
+	Titles  TitlesCmd  `cmd:"" help:"Print recent finished titles"`
+	Ongoing OngoingCmd `cmd:"" help:"Show currently ongoing ticktock"`
+	Last    LastCmd    `cmd:"" help:"Show last finished ticktock details of title"`
+}
 
 type StartCmd struct {
 	Wait  bool   `short:"w" help:"If set, wait for notes input until Ctrl-D, then finish the ticktock"`
-	Title string `arg:"" name:"title" help:"The title of the ticktock"`
+	Title string `arg:"" name:"title" help:"The title of the ticktock. Choose interactively if not given"`
 	Notes string `help:"Notes of the ticktock"`
 }
 
 func (c *StartCmd) Run(ss store.Store) error {
-	if err := ss.StartTitle(c.Title, c.Notes); err != nil {
+	title, err := chooseTitleAsNeed(c.Title, ss)
+	if err != nil {
+		return err
+	}
+
+	if err := ss.StartTitle(title, c.Notes); err != nil {
 		return err
 	}
 	fmt.Printf("(Started: %s)\n", c.Title)
@@ -69,7 +85,7 @@ func (c *FinishCmd) Run(ss store.Store) error {
 }
 
 type TitlesCmd struct {
-	Limit uint8 `short:"n" help:"Number of titles to display, default 5"`
+	Limit uint8 `short:"n" default:"5" help:"Number of titles to display, default 5"`
 	Index bool  `short:"i" help:"If set, prefix titles with index starts from 1"`
 }
 
@@ -98,11 +114,55 @@ func (c *TitlesCmd) Run(ss store.Store) error {
 	return nil
 }
 
-var Cli struct {
-	Db     string    `required:"" type:"path" help:"Path of the db file"`
-	Start  StartCmd  `cmd:"" help:"Start a ticktock"`
-	Finish FinishCmd `cmd:"" help:"Finish the ongoing ticktock"`
-	Titles TitlesCmd `cmd:"" help:"Print recent finished titles"`
+type OngoingCmd struct {
+}
+
+func (c *OngoingCmd) Run(ss store.Store) error {
+	title, duration, err := ss.Ongoing()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%s\n%.0f minutes ago\n", title, duration.Minutes())
+	return nil
+}
+
+type LastCmd struct {
+	Title string `arg:"" optional:"" help:"Title of the ticktock. Choose interactively if not given"`
+}
+
+func (c *LastCmd) Run(ss store.Store) error {
+	title, err := chooseTitleAsNeed(c.Title, ss)
+	if err != nil {
+		return err
+	}
+
+	last, err := ss.LastFinished(title)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(last.Format())
+	return nil
+}
+
+var errCannotReadIndex error = errors.New("Cannot read index")
+var errInvalidIndex error = errors.New("Invalid index")
+var errNothingToChoose error = errors.New("Candidates is empty")
+
+const DEFAULT_LIMIT uint8 = 5
+
+func chooseTitleAsNeed(title string, ss store.Store) (string, error) {
+	if title != "" {
+		return title, nil
+	}
+
+	titles, err := ss.RecentTitles(DEFAULT_LIMIT)
+	if err != nil {
+		return "", nil
+	}
+
+	return chooseString(titles)
 }
 
 func readToEOF() (string, error) {
@@ -113,4 +173,35 @@ func readToEOF() (string, error) {
 	}
 
 	return b.String(), scanner.Err()
+}
+
+func chooseString(candidates []string) (string, error) {
+	if len(candidates) == 0 {
+		return "", errNothingToChoose
+	}
+
+	for i, s := range candidates {
+		fmt.Printf("%d: %s\n", i+1, s)
+	}
+	fmt.Print("Choose index (default 1): ")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return "", errCannotReadIndex
+	}
+
+	var i int
+	var err error
+	if scanner.Text() == "" {
+		i = 1
+	} else {
+		if i, err = strconv.Atoi(scanner.Text()); err != nil {
+			return "", err
+		}
+		if i > len(candidates) || i < 1 {
+			return "", errInvalidIndex
+		}
+	}
+
+	return candidates[i-1], nil
 }

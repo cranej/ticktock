@@ -11,9 +11,6 @@ type Sqlite struct {
 	db *sql.DB
 }
 
-var ErrOngoingExists = errors.New("Ongoing entry eixsts")
-var ErrDuplicateEntry = errors.New("Entry already started")
-
 func (s *Sqlite) Start(entry *UnfinishedEntry) error {
 	start := entry.Start.Format(time.RFC3339)
 
@@ -68,15 +65,12 @@ func (s *Sqlite) FinishLatest(notes string) (string, error) {
 		notes)
 
 	var title string
-	if err := row.Scan(&title); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", nil
-		} else {
-			return "", err
-		}
+	err := row.Scan(&title)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = nil
 	}
 
-	return title, nil
+	return title, err
 }
 
 func (s *Sqlite) RecentTitles(limit uint8) ([]string, error) {
@@ -101,6 +95,52 @@ func (s *Sqlite) RecentTitles(limit uint8) ([]string, error) {
 	}
 
 	return titles, nil
+}
+
+func (s *Sqlite) Ongoing() (string, time.Duration, error) {
+	row := s.db.QueryRow(`SELECT title, start
+		from clocking
+		where end is null`)
+
+	dur0 := time.Duration(0)
+
+	var title, start string
+	if err := row.Scan(&title, &start); err != nil {
+		return "", dur0, err
+	}
+
+	startTime, err := time.Parse(time.RFC3339, start)
+	if err != nil {
+		return "", dur0, err
+	}
+
+	return title, time.Now().Sub(startTime), nil
+}
+
+func (s *Sqlite) LastFinished(title string) (*FinishedEntry, error) {
+	row := s.db.QueryRow(`SELECT title, start, end, notes
+		FROM clocking
+		WHERE id in (
+			SELECT max(id) FROM clocking
+			WHERE title = ? and end IS NOT NULL
+		)`, title)
+
+	var title_, start, end, notes string
+	if err := row.Scan(&title_, &start, &end, &notes); err != nil {
+		return nil, err
+	}
+
+	startTime, err := time.Parse(time.RFC3339, start)
+	if err != nil {
+		return nil, err
+	}
+	endTime, err := time.Parse(time.RFC3339, end)
+	if err != nil {
+		return nil, err
+	}
+
+	result := FinishedEntry{&UnfinishedEntry{title_, startTime, notes}, endTime}
+	return &result, nil
 }
 
 func newSqlite(db string) (Sqlite, error) {
