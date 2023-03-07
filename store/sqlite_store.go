@@ -143,6 +143,52 @@ func (s *Sqlite) LastFinished(title string) (*FinishedEntry, error) {
 	return &result, nil
 }
 
+func (s *Sqlite) Finished(start, end time.Time) ([]FinishedEntry, error) {
+	_, soffset := start.Zone()
+	_, eoffset := end.Zone()
+	if soffset != 0 || eoffset != 0 {
+		return nil, errors.New("Parameters should be in UTC.")
+	}
+
+	rows, err := s.db.Query(`select title, start, end, notes
+		from clocking
+		where end is not null
+		and start >= ? and start <= ?
+		order by start`,
+		start.Format(time.RFC3339),
+		end.Format(time.RFC3339),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]FinishedEntry, 0)
+	for rows.Next() {
+		var title, start, end, notes string
+		if err := rows.Scan(&title, &start, &end, &notes); err != nil {
+			return nil, err
+		}
+
+		startTime, err := time.Parse(time.RFC3339, start)
+		if err != nil {
+			return nil, err
+		}
+
+		endTime, err := time.Parse(time.RFC3339, end)
+		if err != nil {
+			return nil, err
+		}
+
+		entries = append(entries, FinishedEntry{
+			&UnfinishedEntry{title, startTime, notes},
+			endTime,
+		})
+	}
+
+	return entries, nil
+}
+
 func newSqlite(db string) (Sqlite, error) {
 	pool, err := sql.Open("sqlite3", db)
 	if err != nil {

@@ -3,11 +3,12 @@ package main
 import (
 	"bufio"
 	"cranejin.com/ticktock/store"
+	"errors"
 	"fmt"
 	"os"
-	"strings"
-	"errors"
 	"strconv"
+	"strings"
+	"time"
 )
 
 var Cli struct {
@@ -17,6 +18,7 @@ var Cli struct {
 	Titles  TitlesCmd  `cmd:"" help:"Print recent finished titles"`
 	Ongoing OngoingCmd `cmd:"" help:"Show currently ongoing ticktock"`
 	Last    LastCmd    `cmd:"" help:"Show last finished ticktock details of title"`
+	Report  ReportCmd  `cmd:"" help:"Show time usage report"`
 }
 
 type StartCmd struct {
@@ -143,6 +145,27 @@ func (c *LastCmd) Run(ss store.Store) error {
 	}
 
 	fmt.Println(last.Format())
+	return nil
+}
+
+type ReportCmd struct {
+	Type string `default:"summary" enum:"summary,detail,dist" help:"Type of the report to show, valid values are: summary, detail, and dist (distribution)"`
+	From uint16 `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 3' shows report from 3 days ago, from 00:00:00"`
+	To   uint16 `short:"t" default:"0" help:"Show report to @today - To. For example, '--to 1' shows report to 1 days ago, to 23:59:59"`
+}
+
+func (c *ReportCmd) Run(ss store.Store) error {
+	now := time.Now()
+	queryStart := time.Date(now.Year(), now.Month(), now.Day()-int(c.From), 0, 0, 0, 0, time.Local).UTC()
+	queryEnd := time.Date(now.Year(), now.Month(), now.Day()-int(c.To), 23, 59, 59, 0, time.Local).UTC()
+
+	entries, err := ss.Finished(queryStart, queryEnd)
+	if err != nil {
+		return err
+	}
+
+	summary := store.NewSummary(entries)
+	fmt.Println(summary)
 	return nil
 }
 

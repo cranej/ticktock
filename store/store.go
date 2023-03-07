@@ -3,8 +3,8 @@ package store
 import (
 	"errors"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 )
 
 type UnfinishedEntry struct {
@@ -41,6 +41,7 @@ type Store interface {
 	RecentTitles(uint8) ([]string, error)
 	Ongoing() (string, time.Duration, error)
 	LastFinished(string) (*FinishedEntry, error)
+	Finished(time.Time, time.Time) ([]FinishedEntry, error)
 }
 
 func NewSqliteStore(db string) (Store, error) {
@@ -50,4 +51,40 @@ func NewSqliteStore(db string) (Store, error) {
 	}
 
 	return &s, nil
+}
+
+type SummaryView map[string]map[string]time.Duration
+
+func NewSummary(entries []FinishedEntry) SummaryView {
+	summary := make(SummaryView)
+
+	for _, e := range entries {
+		day := e.Start.Local().Format(time.DateOnly)
+		dayMap, ok := summary[day]
+		if !ok {
+			dayMap = make(map[string]time.Duration)
+			summary[day] = dayMap
+		}
+
+		dur := dayMap[e.Title]
+		dayMap[e.Title] = dur + e.End.Sub(e.Start)
+	}
+
+	return summary
+}
+
+func (s SummaryView) String() string {
+	r := time.Duration(time.Minute)
+	var b strings.Builder
+	for day, dayMap := range s {
+		fmt.Fprintln(&b, day)
+
+		for title, dur := range dayMap {
+			fmt.Fprintf(&b, "  %s: %s\n", title, dur.Round(r))
+		}
+
+		fmt.Fprintln(&b)
+	}
+
+	return b.String()
 }
