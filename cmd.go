@@ -23,7 +23,7 @@ var Cli struct {
 
 type StartCmd struct {
 	Wait  bool   `short:"w" help:"If set, wait for notes input until Ctrl-D, then finish the ticktock"`
-	Title string `arg:"" name:"title" help:"The title of the ticktock. Choose interactively if not given"`
+	Title string `arg:"" optional:"" name:"title" help:"The title of the ticktock. Choose interactively if not given"`
 	Notes string `help:"Notes of the ticktock"`
 }
 
@@ -172,7 +172,8 @@ func (c *ReportCmd) Run(ss store.Store) error {
 		detail := store.NewDetail(entries)
 		fmt.Println(detail)
 	case "dist":
-		fmt.Println("Not implemented yet.")
+		dist := store.NewDist(entries)
+		fmt.Println(dist)
 	}
 	return nil
 }

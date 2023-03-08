@@ -126,3 +126,76 @@ func (d DetailView) String() string {
 
 	return b.String()
 }
+
+type DistView map[string][]*FinishedEntry
+
+const IDLE_TITLE string = "<idle>"
+
+func NewDist(entries []FinishedEntry) DistView {
+	dist := make(DistView)
+
+	for i, e := range entries {
+		day := e.Start.Local().Format(time.DateOnly)
+		daySlice, ok := dist[day]
+		if !ok {
+			daySlice = make([]*FinishedEntry, 0, 1)
+		}
+
+		daySlice = append(daySlice, &entries[i])
+		dist[day] = daySlice
+	}
+
+	for day, daySlice := range dist {
+		dayTime, _ := time.ParseInLocation(time.DateOnly, day, time.Local)
+		dayStart := time.Date(dayTime.Year(), dayTime.Month(), dayTime.Day(),
+			9, 0, 0, 0, time.Local)
+		dayEnd := time.Date(dayTime.Year(), dayTime.Month(), dayTime.Day(),
+			21, 0, 0, 0, time.Local)
+
+		dist[day] = fillWithIdles(daySlice, dayStart, dayEnd)
+	}
+
+	return dist
+}
+
+func (d DistView) String() string {
+	r := time.Duration(time.Minute)
+	var b strings.Builder
+	for day, daySlice := range d {
+		fmt.Fprintln(&b, day)
+
+		for _, e := range daySlice {
+			fmt.Fprintf(&b, "  %s ~ %s, %s: %s\n",
+				e.Start.Local().Format(time.TimeOnly),
+				e.End.Local().Format(time.TimeOnly),
+				e.End.Sub(e.Start).Round(r),
+				e.Title)
+		}
+	}
+
+	return b.String()
+}
+
+func fillWithIdles(durs []*FinishedEntry, start, end time.Time) []*FinishedEntry {
+	result := make([]*FinishedEntry, 0, len(durs))
+	for i, d := range durs {
+		if d.Start.After(start) {
+			result = append(result, &FinishedEntry{
+				&UnfinishedEntry{Title: IDLE_TITLE, Start: start, Notes: ""},
+				d.Start,
+			})
+		}
+
+		result = append(result, durs[i])
+		start = d.End
+	}
+
+	if end.After(start) {
+		result = append(result, &FinishedEntry{
+			&UnfinishedEntry{Title: IDLE_TITLE, Start: start, Notes: ""},
+			end,
+		})
+	}
+
+	return result
+}
