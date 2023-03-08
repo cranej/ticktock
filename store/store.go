@@ -88,3 +88,41 @@ func (s SummaryView) String() string {
 
 	return b.String()
 }
+
+type DetailView map[string][]*FinishedEntry
+
+func NewDetail(entries []FinishedEntry) DetailView {
+	detail := make(DetailView)
+
+	for i, e := range entries {
+		entrySlice, ok := detail[e.Title]
+		if !ok {
+			entrySlice = make([]*FinishedEntry, 0)
+		}
+
+		entrySlice = append(entrySlice, &entries[i])
+		detail[e.Title] = entrySlice
+	}
+
+	return detail
+}
+
+func (d DetailView) String() string {
+	r := time.Duration(time.Minute)
+	layout := "2006-01-02 Mon 15:04"
+	var b strings.Builder
+	for title, entrySlice := range d {
+		fmt.Fprintln(&b, title)
+
+		for _, e := range entrySlice {
+			fmt.Fprintf(&b, "  %s ~ %s, %s\n",
+				e.Start.Local().Format(layout),
+				e.End.Local().Format(layout),
+				e.End.Sub(e.Start).Round(r))
+		}
+
+		fmt.Fprintln(&b)
+	}
+
+	return b.String()
+}

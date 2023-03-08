@@ -164,8 +164,16 @@ func (c *ReportCmd) Run(ss store.Store) error {
 		return err
 	}
 
-	summary := store.NewSummary(entries)
-	fmt.Println(summary)
+	switch c.Type {
+	case "summary":
+		summary := store.NewSummary(entries)
+		fmt.Println(summary)
+	case "detail":
+		detail := store.NewDetail(entries)
+		fmt.Println(detail)
+	case "dist":
+		fmt.Println("Not implemented yet.")
+	}
 	return nil
 }
 
