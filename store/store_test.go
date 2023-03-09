@@ -106,7 +106,7 @@ func TestStoreStartDuplicate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := ss.FinishLatest(""); err != nil {
+	if _, err := ss.Finish(""); err != nil {
 		t.Fatal(err)
 	}
 

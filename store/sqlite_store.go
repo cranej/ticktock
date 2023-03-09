@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-type Sqlite struct {
+type sqlite struct {
 	db *sql.DB
 }
 
-func (s *Sqlite) Start(entry *UnfinishedEntry) error {
+func (s *sqlite) Start(entry *UnfinishedEntry) error {
 	start := entry.Start.Format(time.RFC3339)
 
 	var count uint
@@ -46,7 +46,7 @@ func (s *Sqlite) Start(entry *UnfinishedEntry) error {
 	return err
 }
 
-func (s *Sqlite) StartTitle(title, notes string) error {
+func (s *sqlite) StartTitle(title, notes string) error {
 	return s.Start(&UnfinishedEntry{
 		Title: title,
 		Start: time.Now().UTC(),
@@ -54,7 +54,7 @@ func (s *Sqlite) StartTitle(title, notes string) error {
 	})
 }
 
-func (s *Sqlite) FinishLatest(notes string) (string, error) {
+func (s *sqlite) Finish(notes string) (string, error) {
 	row := s.db.QueryRow(`update clocking
 		set end = ?, notes = IFNULL(notes, '')||?
 		where id in (
@@ -73,7 +73,7 @@ func (s *Sqlite) FinishLatest(notes string) (string, error) {
 	return title, err
 }
 
-func (s *Sqlite) RecentTitles(limit uint8) ([]string, error) {
+func (s *sqlite) RecentTitles(limit uint8) ([]string, error) {
 	rows, err := s.db.Query(`SELECT title, max(start)
 		FROM clocking
 		where end is not null
@@ -97,7 +97,7 @@ func (s *Sqlite) RecentTitles(limit uint8) ([]string, error) {
 	return titles, nil
 }
 
-func (s *Sqlite) Ongoing() (string, time.Duration, error) {
+func (s *sqlite) Ongoing() (string, time.Duration, error) {
 	row := s.db.QueryRow(`SELECT title, start
 		from clocking
 		where end is null`)
@@ -117,7 +117,7 @@ func (s *Sqlite) Ongoing() (string, time.Duration, error) {
 	return title, time.Now().Sub(startTime), nil
 }
 
-func (s *Sqlite) LastFinished(title string) (*FinishedEntry, error) {
+func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
 	row := s.db.QueryRow(`SELECT title, start, end, notes
 		FROM clocking
 		WHERE id in (
@@ -143,7 +143,7 @@ func (s *Sqlite) LastFinished(title string) (*FinishedEntry, error) {
 	return &result, nil
 }
 
-func (s *Sqlite) Finished(start, end time.Time) ([]FinishedEntry, error) {
+func (s *sqlite) Finished(start, end time.Time) ([]FinishedEntry, error) {
 	_, soffset := start.Zone()
 	_, eoffset := end.Zone()
 	if soffset != 0 || eoffset != 0 {
@@ -189,10 +189,10 @@ func (s *Sqlite) Finished(start, end time.Time) ([]FinishedEntry, error) {
 	return entries, nil
 }
 
-func newSqlite(db string) (Sqlite, error) {
+func newSqlite(db string) (sqlite, error) {
 	pool, err := sql.Open("sqlite3", db)
 	if err != nil {
-		return Sqlite{}, err
+		return sqlite{}, err
 	}
 
 	initSql := `CREATE TABLE IF NOT EXISTS clocking (
@@ -204,8 +204,8 @@ func newSqlite(db string) (Sqlite, error) {
              )`
 
 	if _, err := pool.Exec(initSql); err != nil {
-		return Sqlite{}, err
+		return sqlite{}, err
 	}
 
-	return Sqlite{pool}, nil
+	return sqlite{pool}, nil
 }

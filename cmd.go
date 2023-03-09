@@ -45,7 +45,7 @@ func (c *StartCmd) Run(ss store.Store) error {
 			return fmt.Errorf("Failed to read notes: %w, ticktock not finished.", err)
 		}
 
-		r, err := ss.FinishLatest(notes)
+		r, err := ss.Finish(notes)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (c *FinishCmd) Run(ss store.Store) error {
 		notes = strings.Join(c.Notes, "\n")
 	}
 
-	r, err := ss.FinishLatest(notes)
+	r, err := ss.Finish(notes)
 	if err != nil {
 		return err
 	}
