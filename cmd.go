@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cranejin.com/ticktock/server"
 	"cranejin.com/ticktock/store"
 	"errors"
 	"fmt"
@@ -19,6 +20,7 @@ var Cli struct {
 	Ongoing OngoingCmd `cmd:"" help:"Show currently ongoing ticktock"`
 	Last    LastCmd    `cmd:"" help:"Show last finished ticktock details of title"`
 	Report  ReportCmd  `cmd:"" help:"Show time usage report"`
+	Server  ServerCmd  `cmd:"" help:"Start a server"`
 }
 
 type StartCmd struct {
@@ -120,12 +122,18 @@ type OngoingCmd struct {
 }
 
 func (c *OngoingCmd) Run(ss store.Store) error {
-	title, duration, err := ss.Ongoing()
+	entry, err := ss.Ongoing()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%s\n%.0f minutes ago\n", title, duration.Minutes())
+	if entry == nil {
+		fmt.Println("No ongoing entry.")
+		return nil
+	}
+
+	duration := time.Now().Sub(entry.Start)
+	fmt.Printf("%s\n%.0f minutes ago\n", entry.Title, duration.Minutes())
 	return nil
 }
 
@@ -176,6 +184,15 @@ func (c *ReportCmd) Run(ss store.Store) error {
 		fmt.Println(dist)
 	}
 	return nil
+}
+
+type ServerCmd struct {
+	Addr string `arg:"" help:"Address to which the server listens"`
+}
+
+func (c *ServerCmd) Run(ss store.Store) error {
+	env := server.Env{ss}
+	return env.Run(c.Addr)
 }
 
 var errCannotReadIndex error = errors.New("Cannot read index")

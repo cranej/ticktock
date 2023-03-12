@@ -97,24 +97,26 @@ func (s *sqlite) RecentTitles(limit uint8) ([]string, error) {
 	return titles, nil
 }
 
-func (s *sqlite) Ongoing() (string, time.Duration, error) {
-	row := s.db.QueryRow(`SELECT title, start
+func (s *sqlite) Ongoing() (*UnfinishedEntry, error) {
+	row := s.db.QueryRow(`SELECT title, start, notes
 		from clocking
 		where end is null`)
 
-	dur0 := time.Duration(0)
-
-	var title, start string
-	if err := row.Scan(&title, &start); err != nil {
-		return "", dur0, err
+	var title, start, notes string
+	if err := row.Scan(&title, &start, &notes); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	startTime, err := time.Parse(time.RFC3339, start)
 	if err != nil {
-		return "", dur0, err
+		return nil, err
 	}
 
-	return title, time.Now().Sub(startTime), nil
+	return &UnfinishedEntry{title, startTime, notes}, nil
 }
 
 func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
@@ -127,7 +129,11 @@ func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
 
 	var title_, start, end, notes string
 	if err := row.Scan(&title_, &start, &end, &notes); err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	startTime, err := time.Parse(time.RFC3339, start)

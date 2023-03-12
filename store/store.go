@@ -52,8 +52,8 @@ type Store interface {
 	// Return at most 'limit' number of distinct titles of recent finished entries.
 	RecentTitles(limit uint8) ([]string, error)
 
-	// Return title and duration of ongoing entry (if any), otherwise return empty string.
-	Ongoing() (string, time.Duration, error)
+	// Return the ongoing entry (if any), otherwise return nil.
+	Ongoing() (*UnfinishedEntry, error)
 
 	// Return the finished entry with the latest Start of given title, if any. Otherwise return nil.
 	LastFinished(title string) (*FinishedEntry, error)
