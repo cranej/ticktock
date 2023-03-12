@@ -4,8 +4,10 @@ import (
 	"cranejin.com/ticktock/store"
 	"embed"
 	"encoding/json"
+	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"io"
+	"log"
 	"net/http"
 	"path"
 	"time"
@@ -43,7 +45,7 @@ func static(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.Write(data)
 }
 
-func AnyFile(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func anyFile(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	file := p.ByName("filepath")
 	data, err := asset.ReadFile(assetPath(file))
 
@@ -66,7 +68,7 @@ func AnyFile(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	w.Write(data)
 }
 
-func (env *Env) ApiRecent(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (env *Env) apiRecent(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	titles, err := env.Store.RecentTitles(5)
 
 	if err != nil {
@@ -77,7 +79,7 @@ func (env *Env) ApiRecent(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	writeJson(w, titles)
 }
 
-func (env *Env) ApiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	title := ps.ByName("title")
 	last, err := env.Store.LastFinished(title)
 	if err != nil {
@@ -88,7 +90,7 @@ func (env *Env) ApiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	writeJson(w, last)
 }
 
-func (env *Env) ApiUnfinished(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (env *Env) apiUnfinished(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	entry, err := env.Store.Ongoing()
 	if err != nil {
 		writeError(w, err)
@@ -98,7 +100,7 @@ func (env *Env) ApiUnfinished(w http.ResponseWriter, r *http.Request, _ httprout
 	writeJson(w, entry)
 }
 
-func (env *Env) ApiStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (env *Env) apiStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	title := ps.ByName("title")
 
 	if err := env.Store.StartTitle(title, ""); err != nil {
@@ -109,8 +111,7 @@ func (env *Env) ApiStart(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	w.WriteHeader(http.StatusOK)
 }
 
-func (env *Env) ApiFinish(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// title ignored
+func (env *Env) apiFinish(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	notes, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeError(w, err)
@@ -127,7 +128,7 @@ func (env *Env) ApiFinish(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	w.WriteHeader(http.StatusOK)
 }
 
-func (env *Env) ApiReport(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if err := r.ParseForm(); err != nil {
 		writeError(w, err)
 		return
@@ -150,7 +151,7 @@ func (env *Env) ApiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
-	startTime, endTime = startTime.UTC(), endTime.UTC()
+	startTime, endTime = setTimeAndUTC(startTime, 0, 0, 0), setTimeAndUTC(endTime, 23, 59, 59)
 	entries, err := env.Store.Finished(startTime, endTime)
 	if err != nil {
 		writeError(w, err)
@@ -167,20 +168,23 @@ func (env *Env) ApiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 	case "dist":
 		dist := store.NewDist(entries)
 		io.WriteString(w, dist.String())
+	default:
+		writeBadRequest(w, fmt.Sprintf("Unknown view type: %s", viewType))
 	}
 }
 
 func (env *Env) Run(addr string) error {
 	router := httprouter.New()
 	router.GET("/", static)
-	router.GET("/static/*filepath", AnyFile)
-	router.GET("/api/recent", env.ApiRecent)
-	router.GET("/api/latest/:title", env.ApiLatest)
-	router.GET("/api/unfinished", env.ApiUnfinished)
-	router.POST("/api/start/:title", env.ApiStart)
-	router.POST("/api/finish/:title", env.ApiFinish)
-	router.GET("/api/report-by-date/:start/:end", env.ApiReport)
+	router.GET("/static/*filepath", anyFile)
+	router.GET("/api/recent", env.apiRecent)
+	router.GET("/api/latest/:title", env.apiLatest)
+	router.GET("/api/unfinished", env.apiUnfinished)
+	router.POST("/api/start/:title", env.apiStart)
+	router.POST("/api/finish", env.apiFinish)
+	router.GET("/api/report-by-date/:start/:end", env.apiReport)
 
+	log.Println("Serve at:", addr)
 	return http.ListenAndServe(addr, router)
 }
 
@@ -203,4 +207,10 @@ func writeJson(w http.ResponseWriter, v any) {
 func writeBadRequest(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusBadRequest)
 	io.WriteString(w, msg)
+}
+
+func setTimeAndUTC(t time.Time, hour, minutes, seconds int) time.Time {
+	tt := time.Date(t.Year(), t.Month(), t.Day(),
+		hour, minutes, seconds, 0, time.Local)
+	return tt.UTC()
 }

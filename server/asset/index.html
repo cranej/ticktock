@@ -17,22 +17,22 @@
         <h1>Observe the <span style="font-style: italic; text-underline-offset: 8px; text-decoration: underline #fa582f 5px;">time<span></h1>
           <form class="pure-from pure-form-stacked">
             <input id="start-input" style="width:100%;" v-model="newStart"></input>
-            <button class="pure-button pure-button-primary"  :disabled="ongoing.size > 0" @click.prevent="{ start(newStart); newStart='';}">Start</button>
+            <button class="pure-button pure-button-primary"  :disabled="ongoing != null" @click.prevent="{ start(newStart); newStart='';}">Start</button>
           </form>
           <div v-if="error">
             <span style="color:red;">Error: {{error}}</span>
             <a class="button-action" href="#" @click.prevent="{error=null;}">Clear</a>
           </div>
-          <div v-if="ongoing.size > 0">
+          <div v-if="ongoing != null">
             <h2>Ongoing:</h2>
-            <div v-for="[title, obj] in ongoing" class="pure-g">
+            <div class="pure-g">
               <p class="pure-u-1" style="margin-top: 0;">
-                {{title}} @ {{new Date(obj.item.start).toLocaleString()}}
+                {{ongoing.Title}} @ {{new Date(ongoing.Start).toLocaleString()}}
               </p>
               <div class="pure-u-1" style="margin-bottom: o.2em">
                 <p style="margin: 0 auto">Notes:</p>
-                <textarea type="textarea" v-model="obj.notes"></textarea>
-                <button class="button-small button-action pure-button" style="vertical-align: bottom;" @click="finish(title)">Finish</button>
+                <textarea type="textarea" v-model="ongoing.Notes"></textarea>
+                <button class="button-small button-action pure-button" style="vertical-align: bottom;" @click="finish()">Finish</button>
               </div>
             </div>
           </div>
@@ -44,7 +44,7 @@
                 {{ title }}
               </p>
               <div class="pure-u-2-5" style="text-align: right">
-                <button class="button-small button-action pure-button" :disabled="ongoing.size > 0" @click.prevent="start(title)">Restart</button>
+                <button class="button-small button-action pure-button" :disabled="ongoing != null" @click.prevent="start(title)">Restart</button>
                 <button class="button-small button-action pure-button" @click.prevent="getItemDetail(title)">View</button>
               </div>
             </div>
@@ -69,8 +69,7 @@
 
                   <label for="report-type">Report Type</label>
                   <select id="report-type" v-model="queryParam.viewType" style="padding: 0.2em 0.6em;">
-                    <option value="daily_detail">Daily Detail</option>
-                    <option value="daily">Daily Summary</option>
+                    <option value="summary">Daily Detail</option>
                     <option value="detail">Entry Detail</option>
                     <option value="dist">Daily Distribution</option>
                   </select>

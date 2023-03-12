@@ -4,11 +4,11 @@ createApp({
         return {
             recentTitles: [],
             detailObject: null ,
-            ongoing: new Map(),
+            ongoing: null,
             error: null,
             newStart: '',
             report: null,
-            queryParam: {'dayStart': "", "dayEnd": "", 'viewType': "daily_detail"},
+            queryParam: {'dayStart': "", "dayEnd": "", 'viewType': "summary"},
         }
     },
 
@@ -27,12 +27,7 @@ createApp({
         },
         async getUnfinished() {
             const url = '/api/unfinished/';
-            let unfinished = await (await fetch(url)).json();
-            let m = new Map();
-            for (const element of unfinished) {
-                m.set(element.title, {'item': element, 'notes': ''});
-            };
-            this.ongoing = m;
+            this.ongoing = await (await fetch(url)).json();
         },
 
         getData() {
@@ -56,9 +51,9 @@ createApp({
                        }
                    }).catch((err) => this.error = err))
         },
-        async finish(title) {
-            let url = `/api/finish/${encodeURI(title)}`;
-            await (fetch(url, {method: 'POST', body: this.ongoing.get(title).notes})
+        async finish() {
+            let url = `/api/finish`;
+            await (fetch(url, {method: 'POST', body: this.ongoing.Notes})
                    .then((rep) => {
                        if (rep.ok) {
                            this.getData();

@@ -31,14 +31,14 @@ func (entry *FinishedEntry) Format() string {
 		strings.TrimSuffix(notes.String(), "\n"))
 }
 
-var ErrOngoingExists = errors.New("Ongoing entry eixsts")
-var ErrDuplicateEntry = errors.New("Entry already started")
+var ErrOngoingExists = errors.New("ongoing entry eixsts")
+var ErrDuplicateEntry = errors.New("entry already started")
 
 type Store interface {
 	// Start an entry.
 	//  1. No new entry allowed if there is already an ongoing (unfinished) entry exists.
 	//  2. Entry considered as duplicated and is not allowed to start,
-	//  if there is already an entry with the same Title and Start.
+	//     if there is already an entry with the same Title and Start.
 	Start(*UnfinishedEntry) error
 
 	// Start an entry with given title and notes, and 'now' as Start.
@@ -46,7 +46,7 @@ type Store interface {
 
 	// Finish the unfinished entry (if any).
 	// If there was one, return it's title.
-	// Otherwise return empty string, do not treat it as error.
+	// If no unfinished entry to finish, return empty string. This case is not treated as error.
 	Finish(notes string) (string, error)
 
 	// Return at most 'limit' number of distinct titles of recent finished entries.
@@ -59,6 +59,7 @@ type Store interface {
 	LastFinished(title string) (*FinishedEntry, error)
 
 	// Query finished entries with condition 'Start >= queryStart and Start <= queryEnd'.
+	// Both queryStart and queryEnd must be UTC time
 	Finished(queryStart, queryEnd time.Time) ([]FinishedEntry, error)
 }
 

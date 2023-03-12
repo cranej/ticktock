@@ -44,7 +44,7 @@ func (c *StartCmd) Run(ss store.Store) error {
 		fmt.Println("Waiting for notes input, Ctrl-D ends the input and finish the ticktock:")
 		notes, err := readToEOF()
 		if err != nil {
-			return fmt.Errorf("Failed to read notes: %w, ticktock not finished.", err)
+			return fmt.Errorf("failed to read notes: %w, ticktock not finished", err)
 		}
 
 		r, err := ss.Finish(notes)
@@ -132,7 +132,7 @@ func (c *OngoingCmd) Run(ss store.Store) error {
 		return nil
 	}
 
-	duration := time.Now().Sub(entry.Start)
+	duration := time.Since(entry.Start)
 	fmt.Printf("%s\n%.0f minutes ago\n", entry.Title, duration.Minutes())
 	return nil
 }
@@ -191,13 +191,13 @@ type ServerCmd struct {
 }
 
 func (c *ServerCmd) Run(ss store.Store) error {
-	env := server.Env{ss}
+	env := server.Env{Store: ss}
 	return env.Run(c.Addr)
 }
 
-var errCannotReadIndex error = errors.New("Cannot read index")
-var errInvalidIndex error = errors.New("Invalid index")
-var errNothingToChoose error = errors.New("Candidates is empty")
+var errCannotReadIndex error = errors.New("cannot read index")
+var errInvalidIndex error = errors.New("invalid index")
+var errNothingToChoose error = errors.New("candidates is empty")
 
 const DEFAULT_LIMIT uint8 = 5
 

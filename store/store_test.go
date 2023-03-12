@@ -44,6 +44,10 @@ func TestStoreStart(t *testing.T) {
 	var end sql.NullString
 
 	db, err := sql.Open("sqlite3", dbConn)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	rows, err := db.Query(`select title, notes, start, end from clocking`)
 
 	if err != nil {
