@@ -149,6 +149,27 @@ func (d DetailView) String() string {
 	return strings.TrimSuffix(b.String(), "\n")
 }
 
+type EffortsView map[string]time.Duration
+
+func NewEfforts(entries []FinishedEntry) EffortsView {
+	efforts := make(EffortsView)
+	for _, e := range entries {
+		efforts[e.Title] = efforts[e.Title] + e.End.Sub(e.Start)
+	}
+
+	return efforts
+}
+
+func (eff EffortsView) String() string {
+	r := time.Duration(time.Minute)
+	var b strings.Builder
+	for title, dur := range eff {
+		fmt.Fprintf(&b, "%s: %s\n", title, dur.Round(r))
+	}
+
+	return strings.TrimSuffix(b.String(), "\n")
+}
+
 type DistView map[string][]*FinishedEntry
 
 const IDLE_TITLE string = "<idle>"
