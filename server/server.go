@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -87,7 +89,20 @@ func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
-	writeJson(w, last)
+	t, err := template.New("entry").Parse(`<h2>{{.Title}}</h2>
+	<h3>{{.Start.Local.Format "2006-01-02 15:04:05"}} ~ {{.End.Local.Format "2006-01-02 15:04:05"}}</h3>
+	<pre>{{.Notes}}</pre>`)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	var out strings.Builder
+	if err := t.Execute(&out, last); err != nil {
+		writeError(w, err)
+		return
+	}
+	io.WriteString(w, out.String())
 }
 
 func (env *Env) apiUnfinished(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

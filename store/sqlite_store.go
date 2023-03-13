@@ -149,11 +149,13 @@ func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
 	return &result, nil
 }
 
+var errTimeShouldBeUTC = errors.New("parameters should be in UTC")
+
 func (s *sqlite) Finished(start, end time.Time) ([]FinishedEntry, error) {
 	_, soffset := start.Zone()
 	_, eoffset := end.Zone()
 	if soffset != 0 || eoffset != 0 {
-		return nil, errors.New("parameters should be in UTC")
+		return nil, errTimeShouldBeUTC
 	}
 
 	rows, err := s.db.Query(`select title, start, end, notes
