@@ -156,17 +156,17 @@ func TestFinishedQueryByNoneUTCTime(t *testing.T) {
 	start := time.Date(2009, time.November, 10, 23, 0, 0, 0, loc)
 	end := time.Date(2009, time.November, 11, 23, 0, 0, 0, loc)
 
-	entries, err := ss.Finished(start, end.UTC())
+	entries, err := ss.Finished(start, end.UTC(), nil)
 	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
 		t.Fatal("Should fail on non UTC time query.")
 	}
 
-	entries, err = ss.Finished(start.UTC(), end)
+	entries, err = ss.Finished(start.UTC(), end, nil)
 	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
 		t.Fatal("Should fail on non UTC time query.")
 	}
 
-	entries, err = ss.Finished(start, end)
+	entries, err = ss.Finished(start, end, nil)
 	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
 		t.Fatal("Should fail on non UTC time query.")
 	}

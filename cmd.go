@@ -60,7 +60,7 @@ func (c *StartCmd) Run(ss store.Store) error {
 }
 
 type FinishCmd struct {
-	Notes []string `help:"Notes to appends, each input as a line. If a single '-' specified, read from stdin."`
+	Notes []string `help:"Notes to appends, each input as a line. If a single '-' is specified, read from stdin."`
 }
 
 func (c *FinishCmd) Run(ss store.Store) error {
@@ -157,9 +157,10 @@ func (c *LastCmd) Run(ss store.Store) error {
 }
 
 type ReportCmd struct {
-	Type string `default:"summary" enum:"summary,detail,dist,efforts" help:"Type of the report to show, valid values are: summary, detail, dist (distribution), and efforts"`
-	From uint16 `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 3' shows report from 3 days ago, from 00:00:00"`
-	To   uint16 `short:"t" default:"0" help:"Show report to @today - To. For example, '--to 1' shows report to 1 days ago, to 23:59:59"`
+	Type  string   `default:"summary" enum:"summary,detail,dist,efforts" help:"Type of the report to show, valid values are: summary, detail, dist (distribution), and efforts"`
+	From  uint16   `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 3' shows report from 3 days ago, from 00:00:00"`
+	To    uint16   `short:"t" default:"0" help:"Show report to @today - To. For example, '--to 1' shows report to 1 days ago, to 23:59:59"`
+	Title []string `help:"filter by titles"`
 }
 
 func (c *ReportCmd) Run(ss store.Store) error {
@@ -167,25 +168,16 @@ func (c *ReportCmd) Run(ss store.Store) error {
 	queryStart := time.Date(now.Year(), now.Month(), now.Day()-int(c.From), 0, 0, 0, 0, time.Local).UTC()
 	queryEnd := time.Date(now.Year(), now.Month(), now.Day()-int(c.To), 23, 59, 59, 0, time.Local).UTC()
 
-	entries, err := ss.Finished(queryStart, queryEnd)
+	entries, err := ss.Finished(queryStart, queryEnd, c.Title)
 	if err != nil {
 		return err
 	}
 
-	switch c.Type {
-	case "summary":
-		summary := store.NewSummary(entries)
-		fmt.Println(summary)
-	case "detail":
-		detail := store.NewDetail(entries)
-		fmt.Println(detail)
-	case "dist":
-		dist := store.NewDist(entries)
-		fmt.Println(dist)
-	case "efforts":
-		efforts := store.NewEfforts(entries)
-		fmt.Println(efforts)
+	view, err := store.View(entries, c.Type)
+	if err != nil {
+		return err
 	}
+	fmt.Println(view)
 	return nil
 }
 

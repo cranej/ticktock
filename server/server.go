@@ -4,7 +4,6 @@ import (
 	"cranejin.com/ticktock/store"
 	"embed"
 	"encoding/json"
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"html/template"
 	"io"
@@ -167,25 +166,18 @@ func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 
 	startTime, endTime = setTimeAndUTC(startTime, 0, 0, 0), setTimeAndUTC(endTime, 23, 59, 59)
-	entries, err := env.Store.Finished(startTime, endTime)
+	entries, err := env.Store.Finished(startTime, endTime, nil)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 
-	switch viewType {
-	case "summary":
-		summary := store.NewSummary(entries)
-		io.WriteString(w, summary.String())
-	case "detail":
-		detail := store.NewDetail(entries)
-		io.WriteString(w, detail.String())
-	case "dist":
-		dist := store.NewDist(entries)
-		io.WriteString(w, dist.String())
-	default:
-		writeBadRequest(w, fmt.Sprintf("Unknown view type: %s", viewType))
+	view, err := store.View(entries, viewType)
+	if err != nil {
+		writeBadRequest(w, err.Error())
+		return
 	}
+	io.WriteString(w, view)
 }
 
 func (env *Env) Run(addr string) error {

@@ -41,26 +41,27 @@ type Store interface {
 	//     if there is already an entry with the same Title and Start.
 	Start(*UnfinishedEntry) error
 
-	// Start an entry with given title and notes, and 'now' as Start.
+	// StartTitle starts an entry with given title and notes, and 'now' as Start.
 	StartTitle(title, note string) error
 
-	// Finish the unfinished entry (if any).
+	// Finish finishes the unfinished entry (if any).
 	// If there was one, return it's title.
 	// If no unfinished entry to finish, return empty string. This case is not treated as error.
 	Finish(notes string) (string, error)
 
-	// Return at most 'limit' number of distinct titles of recent finished entries.
+	// RecentTitles returns at most 'limit' number of distinct titles of recent finished entries.
 	RecentTitles(limit uint8) ([]string, error)
 
-	// Return the ongoing entry (if any), otherwise return nil.
+	// Ongoing returns the ongoing entry (if any), otherwise return nil.
 	Ongoing() (*UnfinishedEntry, error)
 
-	// Return the finished entry with the latest Start of given title, if any. Otherwise return nil.
+	// LastFinished returns the finished entry with the latest Start of given title, if any. Otherwise return nil.
 	LastFinished(title string) (*FinishedEntry, error)
 
-	// Query finished entries with condition 'Start >= queryStart and Start <= queryEnd'.
+	// Finished queries entries with condition 'Start >= queryStart and Start <= queryEnd'.
 	// Both queryStart and queryEnd must be UTC time
-	Finished(queryStart, queryEnd time.Time) ([]FinishedEntry, error)
+	// If 'titles' is not nil, only returns entries with 'title in titles'.
+	Finished(queryStart, queryEnd time.Time, titles []string) ([]FinishedEntry, error)
 }
 
 func NewSqliteStore(db string) (Store, error) {
@@ -70,6 +71,25 @@ func NewSqliteStore(db string) (Store, error) {
 	}
 
 	return &s, nil
+}
+
+func View(entries []FinishedEntry, viewType string) (string, error) {
+	switch viewType {
+	case "summary":
+		summary := NewSummary(entries)
+		return summary.String(), nil
+	case "detail":
+		detail := NewDetail(entries)
+		return detail.String(), nil
+	case "dist":
+		dist := NewDist(entries)
+		return dist.String(), nil
+	case "efforts":
+		efforts := NewEfforts(entries)
+		return efforts.String(), nil
+	default:
+		return "", fmt.Errorf("unkndown viewType: %s", viewType)
+	}
 }
 
 type SummaryView map[string]map[string]time.Duration

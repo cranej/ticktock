@@ -3,7 +3,9 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"strings"
 	"time"
 )
 
@@ -151,22 +153,33 @@ func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
 
 var errTimeShouldBeUTC = errors.New("parameters should be in UTC")
 
-func (s *sqlite) Finished(start, end time.Time) ([]FinishedEntry, error) {
+func (s *sqlite) Finished(start, end time.Time, titles []string) ([]FinishedEntry, error) {
 	_, soffset := start.Zone()
 	_, eoffset := end.Zone()
 	if soffset != 0 || eoffset != 0 {
 		return nil, errTimeShouldBeUTC
 	}
 
-	rows, err := s.db.Query(`select title, start, end, notes
+	query := `select title, start, end, notes
 		from clocking
 		where end is not null
 		and start >= ? and start <= ?
-		order by start`,
-		start.Format(time.RFC3339),
-		end.Format(time.RFC3339),
-	)
+		%s
+		order by start`
+	params := []any{start.Format(time.RFC3339), end.Format(time.RFC3339)}
 
+	if len(titles) > 0 {
+		marks := make([]string, 0, len(titles))
+		for _, t := range titles {
+			marks = append(marks, "?")
+			params = append(params, t)
+		}
+		query = fmt.Sprintf(query, "and title in ("+strings.Join(marks, ",")+")")
+	} else {
+		query = fmt.Sprintf(query, "")
+	}
+
+	rows, err := s.db.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}
