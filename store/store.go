@@ -31,7 +31,7 @@ func (entry *FinishedEntry) Format() string {
 		strings.TrimSuffix(notes.String(), "\n"))
 }
 
-var ErrOngoingExists = errors.New("ongoing entry eixsts")
+var ErrOngoingExists = errors.New("ongoing entry exists")
 var ErrDuplicateEntry = errors.New("entry already started")
 
 type Store interface {
@@ -88,7 +88,7 @@ func View(entries []FinishedEntry, viewType string) (string, error) {
 		efforts := NewEfforts(entries)
 		return efforts.String(), nil
 	default:
-		return "", fmt.Errorf("unkndown viewType: %s", viewType)
+		return "", fmt.Errorf("unknown viewType: %s", viewType)
 	}
 }
 

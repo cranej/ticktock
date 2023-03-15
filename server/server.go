@@ -35,7 +35,7 @@ type Env struct {
 	Store store.Store
 }
 
-func static(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	data, err := asset.ReadFile(assetPath("index.html"))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -182,7 +182,7 @@ func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 
 func (env *Env) Run(addr string) error {
 	router := httprouter.New()
-	router.GET("/", static)
+	router.GET("/", index)
 	router.GET("/static/*filepath", anyFile)
 	router.GET("/api/recent", env.apiRecent)
 	router.GET("/api/latest/:title", env.apiLatest)

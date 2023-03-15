@@ -57,7 +57,7 @@ func TestStoreStart(t *testing.T) {
 	}
 
 	if !rows.Next() {
-		t.Fatal("Expect 1 row but got nothing")
+		t.Fatal("Expects 1 row but got nothing")
 	}
 
 	if err := rows.Scan(&title, &notes, &start, &end); err != nil {
@@ -70,7 +70,7 @@ func TestStoreStart(t *testing.T) {
 
 	if title != entry.Title || notes != entry.Notes ||
 		start != entry.Start.Format(time.RFC3339) || end.Valid {
-		t.Fatalf("Values does not match, title: %s, start: %s, notes: %s, end: %v",
+		t.Fatalf("Values do not match, title: %s, start: %s, notes: %s, end: %v",
 			title, start, notes, end)
 	}
 
@@ -96,7 +96,7 @@ func TestStoreStartOngoingExists(t *testing.T) {
 
 	err := ss.Start(&entry)
 	if err == nil || !errors.Is(err, ErrOngoingExists) {
-		t.Fatalf("Expect ErrOngoingExists, got: %v", err)
+		t.Fatalf("Expects ErrOngoingExists, got: %v", err)
 	}
 }
 
@@ -118,7 +118,7 @@ func TestStoreStartDuplicate(t *testing.T) {
 
 	err := ss.Start(&entry)
 	if err == nil || !errors.Is(err, ErrDuplicateEntry) {
-		t.Fatalf("Expect ErrDuplicateEntry, got: %v", err)
+		t.Fatalf("Expects ErrDuplicateEntry, got: %v", err)
 	}
 }
 
@@ -158,16 +158,16 @@ func TestFinishedQueryByNoneUTCTime(t *testing.T) {
 
 	entries, err := ss.Finished(start, end.UTC(), nil)
 	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
-		t.Fatal("Should fail on non UTC time query.")
+		t.Fatal("Should fail on none UTC time query.")
 	}
 
 	entries, err = ss.Finished(start.UTC(), end, nil)
 	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
-		t.Fatal("Should fail on non UTC time query.")
+		t.Fatal("Should fail on none UTC time query.")
 	}
 
 	entries, err = ss.Finished(start, end, nil)
 	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
-		t.Fatal("Should fail on non UTC time query.")
+		t.Fatal("Should fail on none UTC time query.")
 	}
 }

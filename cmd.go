@@ -158,8 +158,8 @@ func (c *LastCmd) Run(ss store.Store) error {
 
 type ReportCmd struct {
 	Type  string   `default:"summary" enum:"summary,detail,dist,efforts" help:"Type of the report to show, valid values are: summary, detail, dist (distribution), and efforts"`
-	From  uint16   `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 3' shows report from 3 days ago, from 00:00:00"`
-	To    uint16   `short:"t" default:"0" help:"Show report to @today - To. For example, '--to 1' shows report to 1 days ago, to 23:59:59"`
+	From  uint16   `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 1' shows report from yesterday 00:00:00"`
+	To    uint16   `short:"t" default:"0" help:"Show report to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
 	Title []string `help:"filter by titles"`
 }
 
