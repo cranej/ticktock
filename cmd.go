@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"cranejin.com/ticktock/server"
-	"cranejin.com/ticktock/store"
+	"github.com/cranej/ticktock/server"
+	"github.com/cranej/ticktock/store"
 	"errors"
 	"fmt"
 	"os"

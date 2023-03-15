@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cranejin.com/ticktock/store"
+	"github.com/cranej/ticktock/store"
 	"github.com/alecthomas/kong"
 )
 

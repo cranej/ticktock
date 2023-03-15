@@ -1,4 +1,4 @@
-module cranejin.com/ticktock
+module github.com/cranej/ticktock
 
 go 1.20
 

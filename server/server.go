@@ -1,7 +1,7 @@
 package server
 
 import (
-	"cranejin.com/ticktock/store"
+	"github.com/cranej/ticktock/store"
 	"embed"
 	"encoding/json"
 	"github.com/julienschmidt/httprouter"
