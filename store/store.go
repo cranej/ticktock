@@ -28,7 +28,7 @@ func (entry *FinishedEntry) Format() string {
 		entry.Title,
 		entry.Start.Local().Format(time.DateTime),
 		entry.End.Local().Format(time.DateTime),
-		strings.TrimSuffix(notes.String(), "\n"))
+		strings.TrimRight(notes.String(), "\n"))
 }
 
 var ErrOngoingExists = errors.New("ongoing entry exists")
@@ -124,10 +124,10 @@ func (s SummaryView) String() string {
 			dayDur += dur
 		}
 
-		fmt.Fprintf(&b, "  (Total): %s\n\n", dayDur.Round(r))
+		fmt.Fprintf(&b, "(Total): %s\n\n", dayDur.Round(r))
 	}
 
-	return strings.TrimSuffix(b.String(), "\n")
+	return strings.TrimRight(b.String(), "\n")
 }
 
 type DetailView map[string][]*FinishedEntry
@@ -166,7 +166,7 @@ func (d DetailView) String() string {
 		fmt.Fprintln(&b)
 	}
 
-	return strings.TrimSuffix(b.String(), "\n")
+	return strings.TrimRight(b.String(), "\n")
 }
 
 type EffortsView map[string]time.Duration
@@ -187,7 +187,7 @@ func (eff EffortsView) String() string {
 		fmt.Fprintf(&b, "%s: %s\n", title, dur.Round(r))
 	}
 
-	return strings.TrimSuffix(b.String(), "\n")
+	return strings.TrimRight(b.String(), "\n")
 }
 
 type DistView map[string][]*FinishedEntry
@@ -243,7 +243,7 @@ func (d DistView) String() string {
 		fmt.Fprintf(&b, "(Idle: %s)\n\n", idleDur.Round(r))
 	}
 
-	return strings.TrimSuffix(b.String(), "\n")
+	return strings.TrimRight(b.String(), "\n")
 }
 
 func fillIdles(entries []*FinishedEntry, start, end time.Time) []*FinishedEntry {

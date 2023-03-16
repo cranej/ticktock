@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/cranej/ticktock/store"
 	"github.com/alecthomas/kong"
+	"github.com/cranej/ticktock/store"
 )
 
 func main() {

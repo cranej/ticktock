@@ -2,10 +2,11 @@ package main
 
 import (
 	"bufio"
-	"github.com/cranej/ticktock/server"
-	"github.com/cranej/ticktock/store"
 	"errors"
 	"fmt"
+	"github.com/cranej/ticktock/server"
+	"github.com/cranej/ticktock/store"
+	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"strconv"
 	"strings"
@@ -165,10 +166,10 @@ type ReportCmd struct {
 
 func (c *ReportCmd) Run(ss store.Store) error {
 	now := time.Now()
-	queryStart := time.Date(now.Year(), now.Month(), now.Day()-int(c.From), 0, 0, 0, 0, time.Local).UTC()
-	queryEnd := time.Date(now.Year(), now.Month(), now.Day()-int(c.To), 23, 59, 59, 0, time.Local).UTC()
+	start := time.Date(now.Year(), now.Month(), now.Day()-int(c.From), 0, 0, 0, 0, time.Local).UTC()
+	end := time.Date(now.Year(), now.Month(), now.Day()-int(c.To), 23, 59, 59, 0, time.Local).UTC()
 
-	entries, err := ss.Finished(queryStart, queryEnd, c.Title)
+	entries, err := ss.Finished(start, end, c.Title)
 	if err != nil {
 		return err
 	}

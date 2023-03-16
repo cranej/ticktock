@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/cranej/ticktock/store"
 	"embed"
 	"encoding/json"
+	"github.com/cranej/ticktock/store"
 	"github.com/julienschmidt/httprouter"
 	"html/template"
 	"io"
