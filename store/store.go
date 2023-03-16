@@ -92,6 +92,13 @@ func View(entries []FinishedEntry, viewType string) (string, error) {
 	}
 }
 
+var round time.Duration = time.Duration(time.Minute)
+
+// durS return string represention of d as "72h3m"
+func durS(d time.Duration) string {
+	return strings.TrimSuffix(d.Round(round).String(), "0s")
+}
+
 type SummaryView map[string]map[string]time.Duration
 
 func NewSummary(entries []FinishedEntry) SummaryView {
@@ -113,18 +120,17 @@ func NewSummary(entries []FinishedEntry) SummaryView {
 }
 
 func (s SummaryView) String() string {
-	r := time.Duration(time.Minute)
 	var b strings.Builder
 	for day, dayMap := range s {
 		fmt.Fprintln(&b, day)
 
 		var dayDur time.Duration
 		for title, dur := range dayMap {
-			fmt.Fprintf(&b, "  %s: %s\n", title, dur.Round(r))
+			fmt.Fprintf(&b, "  %s: %s\n", title, durS(dur))
 			dayDur += dur
 		}
 
-		fmt.Fprintf(&b, "(Total): %s\n\n", dayDur.Round(r))
+		fmt.Fprintf(&b, "(Total): %s\n\n", durS(dayDur))
 	}
 
 	return strings.TrimRight(b.String(), "\n")
@@ -149,7 +155,6 @@ func NewDetail(entries []FinishedEntry) DetailView {
 }
 
 func (d DetailView) String() string {
-	r := time.Duration(time.Minute)
 	layout := "2006-01-02 Mon 15:04"
 	short := "15:04"
 	var b strings.Builder
@@ -160,7 +165,7 @@ func (d DetailView) String() string {
 			fmt.Fprintf(&b, "  %s ~ %s | %s\n",
 				e.Start.Local().Format(layout),
 				e.End.Local().Format(short),
-				e.End.Sub(e.Start).Round(r))
+				durS(e.End.Sub(e.Start)))
 		}
 
 		fmt.Fprintln(&b)
@@ -181,10 +186,9 @@ func NewEfforts(entries []FinishedEntry) EffortsView {
 }
 
 func (eff EffortsView) String() string {
-	r := time.Duration(time.Minute)
 	var b strings.Builder
 	for title, dur := range eff {
-		fmt.Fprintf(&b, "%s: %s\n", title, dur.Round(r))
+		fmt.Fprintf(&b, "%s: %s\n", title, durS(dur))
 	}
 
 	return strings.TrimRight(b.String(), "\n")
@@ -222,7 +226,6 @@ func NewDist(entries []FinishedEntry) DistView {
 }
 
 func (d DistView) String() string {
-	r := time.Duration(time.Second)
 	var b strings.Builder
 	for day, daySlice := range d {
 		fmt.Fprintln(&b, day)
@@ -233,14 +236,14 @@ func (d DistView) String() string {
 			if e.Title == IDLE_TITLE {
 				idleDur += dur
 			}
-			fmt.Fprintf(&b, "  %s ~ %s | %-9s | %s\n",
+			fmt.Fprintf(&b, "  %s ~ %s | %-7s | %s\n",
 				e.Start.Local().Format(time.TimeOnly),
 				e.End.Local().Format(time.TimeOnly),
-				dur.Round(r),
+				durS(dur),
 				e.Title)
 		}
 
-		fmt.Fprintf(&b, "(Idle: %s)\n\n", idleDur.Round(r))
+		fmt.Fprintf(&b, "(Idle: %s)\n\n", durS(idleDur))
 	}
 
 	return strings.TrimRight(b.String(), "\n")
