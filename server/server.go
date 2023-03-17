@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"github.com/cranej/ticktock/store"
+	"github.com/cranej/ticktock/version"
 	"github.com/julienschmidt/httprouter"
 	"html/template"
 	"io"
@@ -73,7 +74,7 @@ func (env *Env) apiRecent(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	titles, err := env.Store.RecentTitles(5)
 
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -84,7 +85,7 @@ func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	title := ps.ByName("title")
 	last, err := env.Store.LastFinished(title)
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -92,13 +93,13 @@ func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	<h3>{{.Start.Local.Format "2006-01-02 15:04:05"}} ~ {{.End.Local.Format "2006-01-02 15:04:05"}}</h3>
 	<pre>{{.Notes}}</pre>`)
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	var out strings.Builder
 	if err := t.Execute(&out, last); err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	io.WriteString(w, out.String())
@@ -107,7 +108,7 @@ func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.
 func (env *Env) apiUnfinished(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	entry, err := env.Store.Ongoing()
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -118,7 +119,7 @@ func (env *Env) apiStart(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	title := ps.ByName("title")
 
 	if err := env.Store.StartTitle(title, ""); err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -128,14 +129,14 @@ func (env *Env) apiStart(w http.ResponseWriter, r *http.Request, ps httprouter.P
 func (env *Env) apiFinish(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	notes, err := io.ReadAll(r.Body)
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = env.Store.Finish(string(notes))
 
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -144,7 +145,7 @@ func (env *Env) apiFinish(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if err := r.ParseForm(); err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	viewType := r.Form.Get("view_type")
@@ -155,26 +156,26 @@ func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 
 	startTime, err := time.ParseInLocation(time.DateOnly, start, time.Local)
 	if err != nil {
-		writeBadRequest(w, "Invalid format of query start")
+		http.Error(w, "Invalid format of query start", http.StatusBadRequest)
 		return
 	}
 
 	endTime, err := time.ParseInLocation(time.DateOnly, end, time.Local)
 	if err != nil {
-		writeBadRequest(w, "Invalid format of query end")
+		http.Error(w, "Invalid format of query end", http.StatusBadRequest)
 		return
 	}
 
 	startTime, endTime = setTimeAndUTC(startTime, 0, 0, 0), setTimeAndUTC(endTime, 23, 59, 59)
 	entries, err := env.Store.Finished(startTime, endTime, nil)
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	view, err := store.View(entries, viewType)
 	if err != nil {
-		writeBadRequest(w, err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	io.WriteString(w, view)
@@ -190,30 +191,23 @@ func (env *Env) Run(addr string) error {
 	router.POST("/api/start/:title", env.apiStart)
 	router.POST("/api/finish", env.apiFinish)
 	router.GET("/api/report-by-date/:start/:end", env.apiReport)
+	router.GET("/version", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		io.WriteString(w, version.Version)
+	})
 
 	log.Println("Serve at:", addr)
 	return http.ListenAndServe(addr, router)
 }
 
-func writeError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	io.WriteString(w, err.Error())
-}
-
 func writeJson(w http.ResponseWriter, v any) {
 	j, err := json.Marshal(v)
 	if err != nil {
-		writeError(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set(contentTypeHeader, contentJson)
 	w.Write(j)
-}
-
-func writeBadRequest(w http.ResponseWriter, msg string) {
-	w.WriteHeader(http.StatusBadRequest)
-	io.WriteString(w, msg)
 }
 
 func setTimeAndUTC(t time.Time, hour, minutes, seconds int) time.Time {

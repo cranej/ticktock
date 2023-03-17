@@ -13,17 +13,6 @@ import (
 	"time"
 )
 
-var Cli struct {
-	Db      string     `required:"" env:"TICKTOCK_DB" type:"path" help:"Path of the db file"`
-	Start   StartCmd   `cmd:"" help:"Start a ticktock"`
-	Finish  FinishCmd  `cmd:"" help:"Finish the ongoing ticktock"`
-	Titles  TitlesCmd  `cmd:"" help:"Print recent finished titles"`
-	Ongoing OngoingCmd `cmd:"" help:"Show currently ongoing ticktock"`
-	Last    LastCmd    `cmd:"" help:"Show last finished ticktock details of title"`
-	Report  ReportCmd  `cmd:"" help:"Show time usage report"`
-	Server  ServerCmd  `cmd:"" help:"Start a server"`
-}
-
 type StartCmd struct {
 	Wait  bool   `short:"w" help:"If set, wait for notes input until Ctrl-D, then finish the ticktock"`
 	Title string `arg:"" optional:"" name:"title" help:"The title of the ticktock. Choose interactively if not given"`
