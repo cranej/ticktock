@@ -151,6 +151,7 @@ type ReportCmd struct {
 	From  uint16   `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 1' shows report from yesterday 00:00:00"`
 	To    uint16   `short:"t" default:"0" help:"Show report to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
 	Title []string `help:"filter by titles"`
+	Tag   bool     `default:"false" help:"if set, --title 'book' queries all entries with title starts with 'book: '"`
 }
 
 func (c *ReportCmd) Run(ss store.Store) error {
@@ -158,12 +159,22 @@ func (c *ReportCmd) Run(ss store.Store) error {
 	start := time.Date(now.Year(), now.Month(), now.Day()-int(c.From), 0, 0, 0, 0, time.Local).UTC()
 	end := time.Date(now.Year(), now.Month(), now.Day()-int(c.To), 23, 59, 59, 0, time.Local).UTC()
 
-	entries, err := ss.Finished(start, end, c.Title)
+	var arg *store.QueryArg
+	if c.Tag {
+		arg = store.NewTagArg(c.Title)
+	} else {
+		arg = store.NewTitleArg(c.Title)
+	}
+	entries, err := ss.Finished(start, end, arg)
 	if err != nil {
 		return err
 	}
 
-	view, err := store.View(entries, c.Type)
+	var keyF func(*store.FinishedEntry) string
+	if c.Tag {
+		keyF = (*store.FinishedEntry).Tag
+	}
+	view, err := store.View(entries, c.Type, keyF)
 	if err != nil {
 		return err
 	}

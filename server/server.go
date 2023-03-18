@@ -173,7 +173,7 @@ func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
-	view, err := store.View(entries, viewType)
+	view, err := store.View(entries, viewType, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

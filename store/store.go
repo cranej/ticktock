@@ -31,8 +31,55 @@ func (entry *FinishedEntry) Format() string {
 		strings.TrimRight(notes.String(), "\n"))
 }
 
+func (entry *FinishedEntry) Tag() string {
+	return strings.SplitN(entry.Title, ": ", 2)[0]
+}
+
 var ErrOngoingExists = errors.New("ongoing entry exists")
 var ErrDuplicateEntry = errors.New("entry already started")
+
+type QueryArg struct {
+	values []string
+	asTag  bool
+}
+
+func NewTitleArg(titles []string) *QueryArg {
+	if titles == nil {
+		return nil
+	}
+
+	return &QueryArg{
+		values: titles,
+		asTag:  false,
+	}
+}
+
+func NewTagArg(tags []string) *QueryArg {
+	if tags == nil {
+		return nil
+	}
+
+	return &QueryArg{
+		values: tags,
+		asTag:  true,
+	}
+}
+
+func (q *QueryArg) Empty() bool {
+	return q == nil || len(q.values) == 0
+}
+
+func (q *QueryArg) Values() []string {
+	if q == nil {
+		return nil
+	} else {
+		return q.values
+	}
+}
+
+func (q *QueryArg) IsTag() bool {
+	return q != nil && q.asTag
+}
 
 type Store interface {
 	// Start an entry.
@@ -60,8 +107,10 @@ type Store interface {
 
 	// Finished queries entries with condition 'Start >= queryStart and Start <= queryEnd'.
 	// Both queryStart and queryEnd must be UTC time
-	// If 'titles' is not nil, only returns entries with 'title in titles'.
-	Finished(queryStart, queryEnd time.Time, titles []string) ([]FinishedEntry, error)
+	// If filter is not nil:
+	//   if filter is title filter, only returns entries with 'title in filter.values'.
+	//   if filter is tag filter, returns entries with 'FinishedEntry.Tag() in filter.values'.
+	Finished(queryStart, queryEnd time.Time, filter *QueryArg) ([]FinishedEntry, error)
 }
 
 func NewSqliteStore(db string) (Store, error) {
@@ -73,7 +122,7 @@ func NewSqliteStore(db string) (Store, error) {
 	return &s, nil
 }
 
-func View(entries []FinishedEntry, viewType string) (string, error) {
+func View(entries []FinishedEntry, viewType string, keyF func(*FinishedEntry) string) (string, error) {
 	switch viewType {
 	case "summary":
 		summary := NewSummary(entries)
@@ -85,7 +134,7 @@ func View(entries []FinishedEntry, viewType string) (string, error) {
 		dist := NewDist(entries)
 		return dist.String(), nil
 	case "efforts":
-		efforts := NewEfforts(entries)
+		efforts := NewEfforts(entries, keyF)
 		return efforts.String(), nil
 	default:
 		return "", fmt.Errorf("unknown viewType: %s", viewType)
@@ -176,10 +225,14 @@ func (d DetailView) String() string {
 
 type EffortsView map[string]time.Duration
 
-func NewEfforts(entries []FinishedEntry) EffortsView {
+func NewEfforts(entries []FinishedEntry, keyF func(*FinishedEntry) string) EffortsView {
 	efforts := make(EffortsView)
+	if keyF == nil {
+		keyF = func(e *FinishedEntry) string { return e.Title }
+	}
 	for _, e := range entries {
-		efforts[e.Title] = efforts[e.Title] + e.End.Sub(e.Start)
+		key := keyF(&e)
+		efforts[key] = efforts[key] + e.End.Sub(e.Start)
 	}
 
 	return efforts

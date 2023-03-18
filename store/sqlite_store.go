@@ -152,7 +152,7 @@ func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
 
 var errTimeShouldBeUTC = errors.New("parameters should be in UTC")
 
-func (s *sqlite) Finished(start, end time.Time, titles []string) ([]FinishedEntry, error) {
+func (s *sqlite) Finished(start, end time.Time, filter *QueryArg) ([]FinishedEntry, error) {
 	_, soffset := start.Zone()
 	_, eoffset := end.Zone()
 	if soffset != 0 || eoffset != 0 {
@@ -167,15 +167,24 @@ func (s *sqlite) Finished(start, end time.Time, titles []string) ([]FinishedEntr
 		order by start`
 	params := []any{start.Format(time.RFC3339), end.Format(time.RFC3339)}
 
-	if len(titles) > 0 {
-		marks := make([]string, 0, len(titles))
-		for _, t := range titles {
-			marks = append(marks, "?")
-			params = append(params, t)
-		}
-		query = fmt.Sprintf(query, "and title in ("+strings.Join(marks, ",")+")")
-	} else {
+	if filter.Empty() {
 		query = fmt.Sprintf(query, "")
+	} else {
+		marks := make([]string, 0, len(filter.Values()))
+		var mark string
+		var valueF func(string) string
+		if filter.IsTag() {
+			mark = `title like ?`
+			valueF = func(t string) string { return t + ": %" }
+		} else {
+			mark = "title = ?"
+			valueF = func(t string) string { return t }
+		}
+		for _, t := range filter.Values() {
+			marks = append(marks, mark)
+			params = append(params, valueF(t))
+		}
+		query = fmt.Sprintf(query, "and ("+strings.Join(marks, " or ")+")")
 	}
 
 	rows, err := s.db.Query(query, params...)
