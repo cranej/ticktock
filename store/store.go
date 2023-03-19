@@ -125,7 +125,7 @@ func NewSqliteStore(db string) (Store, error) {
 func View(entries []FinishedEntry, viewType string, keyF func(*FinishedEntry) string) (string, error) {
 	switch viewType {
 	case "summary":
-		summary := NewSummary(entries)
+		summary := NewSummary(entries, keyF)
 		return summary.String(), nil
 	case "detail":
 		detail := NewDetail(entries)
@@ -150,9 +150,12 @@ func durS(d time.Duration) string {
 
 type SummaryView map[string]map[string]time.Duration
 
-func NewSummary(entries []FinishedEntry) SummaryView {
+func NewSummary(entries []FinishedEntry, keyF func(*FinishedEntry) string) SummaryView {
 	summary := make(SummaryView)
 
+	if keyF == nil {
+		keyF = func(e *FinishedEntry) string { return e.Title }
+	}
 	for _, e := range entries {
 		day := e.Start.Local().Format(time.DateOnly)
 		dayMap, ok := summary[day]
@@ -161,8 +164,9 @@ func NewSummary(entries []FinishedEntry) SummaryView {
 			summary[day] = dayMap
 		}
 
-		dur := dayMap[e.Title]
-		dayMap[e.Title] = dur + e.End.Sub(e.Start)
+		key := keyF(&e)
+		dur := dayMap[key]
+		dayMap[key] = dur + e.End.Sub(e.Start)
 	}
 
 	return summary
