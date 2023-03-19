@@ -122,16 +122,20 @@ func NewSqliteStore(db string) (Store, error) {
 	return &s, nil
 }
 
+// View implementation. Views do not modify input entries.
 func View(entries []FinishedEntry, viewType string, keyF func(*FinishedEntry) string) (string, error) {
+	if keyF == nil {
+		keyF = func(e *FinishedEntry) string { return e.Title }
+	}
 	switch viewType {
 	case "summary":
 		summary := NewSummary(entries, keyF)
 		return summary.String(), nil
 	case "detail":
-		detail := NewDetail(entries)
+		detail := NewDetail(entries, keyF)
 		return detail.String(), nil
 	case "dist":
-		dist := NewDist(entries)
+		dist := NewDist(entries, keyF)
 		return dist.String(), nil
 	case "efforts":
 		efforts := NewEfforts(entries, keyF)
@@ -153,9 +157,6 @@ type SummaryView map[string]map[string]time.Duration
 func NewSummary(entries []FinishedEntry, keyF func(*FinishedEntry) string) SummaryView {
 	summary := make(SummaryView)
 
-	if keyF == nil {
-		keyF = func(e *FinishedEntry) string { return e.Title }
-	}
 	for _, e := range entries {
 		day := e.Start.Local().Format(time.DateOnly)
 		dayMap, ok := summary[day]
@@ -191,17 +192,18 @@ func (s SummaryView) String() string {
 
 type DetailView map[string][]*FinishedEntry
 
-func NewDetail(entries []FinishedEntry) DetailView {
+func NewDetail(entries []FinishedEntry, keyF func(*FinishedEntry) string) DetailView {
 	detail := make(DetailView)
 
 	for i, e := range entries {
-		entrySlice, ok := detail[e.Title]
+		key := keyF(&e)
+		entrySlice, ok := detail[key]
 		if !ok {
 			entrySlice = make([]*FinishedEntry, 0)
 		}
 
 		entrySlice = append(entrySlice, &entries[i])
-		detail[e.Title] = entrySlice
+		detail[key] = entrySlice
 	}
 
 	return detail
@@ -231,9 +233,6 @@ type EffortsView map[string]time.Duration
 
 func NewEfforts(entries []FinishedEntry, keyF func(*FinishedEntry) string) EffortsView {
 	efforts := make(EffortsView)
-	if keyF == nil {
-		keyF = func(e *FinishedEntry) string { return e.Title }
-	}
 	for _, e := range entries {
 		key := keyF(&e)
 		efforts[key] = efforts[key] + e.End.Sub(e.Start)
@@ -255,17 +254,21 @@ type DistView map[string][]*FinishedEntry
 
 const IDLE_TITLE string = "<idle>"
 
-func NewDist(entries []FinishedEntry) DistView {
+func NewDist(entries []FinishedEntry, keyF func(*FinishedEntry) string) DistView {
 	dist := make(DistView)
 
-	for i, e := range entries {
+	for _, e := range entries {
 		day := e.Start.Local().Format(time.DateOnly)
 		daySlice, ok := dist[day]
 		if !ok {
 			daySlice = make([]*FinishedEntry, 0, 1)
 		}
 
-		daySlice = append(daySlice, &entries[i])
+		// Do not modify input entries here
+		daySlice = append(daySlice, &FinishedEntry{
+			&UnfinishedEntry{Title: keyF(&e), Start: e.Start, Notes: ""},
+			e.End,
+		})
 		dist[day] = daySlice
 	}
 

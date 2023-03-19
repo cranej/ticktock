@@ -150,7 +150,7 @@ type ReportCmd struct {
 	From  uint16   `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 1' shows report from yesterday 00:00:00"`
 	To    uint16   `short:"t" default:"0" help:"Show report of ticktocks to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
 	Title []string `help:"filter by titles"`
-	Tag   bool     `default:"false" help:"if set, --title 'book' queries all entries with title starts with 'book: ' (here, book is the tag of the entry). Also, summary and efforts view will aggregate by entry tag instead of title"`
+	Tag   bool     `default:"false" help:"if set, --title 'book' queries all entries with title starts with 'book: ' (here, book is the tag of the entry). Also, entries will be aggregated by tag instead of by title"`
 }
 
 func (c *ReportCmd) Run(ss store.Store) error {
