@@ -14,9 +14,9 @@ import (
 )
 
 type StartCmd struct {
-	Wait  bool   `short:"w" help:"If set, wait for notes input until Ctrl-D, then finish the ticktock"`
-	Title string `arg:"" optional:"" name:"title" help:"The title of the ticktock. Choose interactively if not given"`
-	Notes string `help:"Notes of the ticktock"`
+	Wait  bool     `short:"w" help:"If set, wait for notes input until Ctrl-D, then finish the ticktock"`
+	Title string   `arg:"" optional:"" name:"title" help:"The title of the ticktock. Choose from recent titles interactively if not given"`
+	Notes []string `help:"Notes of the ticktock, each input as a line. If a single '-' is given, read from stdin"`
 }
 
 func (c *StartCmd) Run(ss store.Store) error {
@@ -25,7 +25,12 @@ func (c *StartCmd) Run(ss store.Store) error {
 		return err
 	}
 
-	if err := ss.StartTitle(title, c.Notes); err != nil {
+	notes, err := getNotes(c.Notes)
+	if err != nil {
+		return err
+	}
+
+	if err := ss.StartTitle(title, notes); err != nil {
 		return err
 	}
 	fmt.Printf("(Started: %s)\n", c.Title)
@@ -50,19 +55,13 @@ func (c *StartCmd) Run(ss store.Store) error {
 }
 
 type FinishCmd struct {
-	Notes []string `help:"Notes to appends, each input as a line. If a single '-' is specified, read from stdin."`
+	Notes []string `help:"Notes to appends, each input as a line. If a single '-' is given, read from stdin"`
 }
 
 func (c *FinishCmd) Run(ss store.Store) error {
-	var notes string
-	var err error
-	if len(c.Notes) == 1 && c.Notes[0] == "-" {
-		notes, err = readToEOF()
-		if err != nil {
-			return err
-		}
-	} else if len(c.Notes) > 1 {
-		notes = strings.Join(c.Notes, "\n")
+	notes, err := getNotes(c.Notes)
+	if err != nil {
+		return err
 	}
 
 	r, err := ss.Finish(notes)
@@ -149,7 +148,7 @@ func (c *LastCmd) Run(ss store.Store) error {
 type ReportCmd struct {
 	Type  string   `default:"summary" enum:"summary,detail,dist,efforts" help:"Type of the report to show, valid values are: summary, detail, dist (distribution), and efforts"`
 	From  uint16   `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 1' shows report from yesterday 00:00:00"`
-	To    uint16   `short:"t" default:"0" help:"Show report to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
+	To    uint16   `short:"t" default:"0" help:"Show report of ticktocks to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
 	Title []string `help:"filter by titles"`
 	Tag   bool     `default:"false" help:"if set, --title 'book' queries all entries with title starts with 'book: '"`
 }
@@ -249,4 +248,13 @@ func chooseString(candidates []string) (string, error) {
 	}
 
 	return candidates[i-1], nil
+}
+
+func getNotes(input []string) (string, error) {
+	if len(input) == 1 && input[0] == "-" {
+		fmt.Println("Input notes (end with Ctrl-D): ")
+		return readToEOF()
+	} else {
+		return strings.Join(input, "\n"), nil
+	}
 }
