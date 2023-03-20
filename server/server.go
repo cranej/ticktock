@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/cranej/ticktock/store"
 	"github.com/cranej/ticktock/version"
+	"github.com/cranej/ticktock/view"
 	"github.com/julienschmidt/httprouter"
 	"html/template"
 	"io"
@@ -173,7 +174,7 @@ func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
-	view, err := store.View(entries, viewType, nil)
+	view, err := view.Render(entries, viewType, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

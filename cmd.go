@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/cranej/ticktock/server"
 	"github.com/cranej/ticktock/store"
+	"github.com/cranej/ticktock/view"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"strconv"
@@ -173,7 +174,7 @@ func (c *ReportCmd) Run(ss store.Store) error {
 	if c.Tag {
 		keyF = (*store.FinishedEntry).Tag
 	}
-	view, err := store.View(entries, c.Type, keyF)
+	view, err := view.Render(entries, c.Type, keyF)
 	if err != nil {
 		return err
 	}
