@@ -9,11 +9,11 @@ import (
 var Cli struct {
 	Db      string           `required:"" env:"TICKTOCK_DB" type:"path" help:"Path of the db file, required if environment not set"`
 	Version kong.VersionFlag `help:"Show version"`
-	Start   StartCmd         `cmd:"" help:"Start a ticktock"`
-	Finish  FinishCmd        `cmd:"" help:"Finish the ongoing ticktock"`
-	Titles  TitlesCmd        `cmd:"" help:"Print recent finished titles"`
-	Ongoing OngoingCmd       `cmd:"" help:"Show currently ongoing ticktock"`
-	Last    LastCmd          `cmd:"" help:"Show last finished ticktock details of title"`
+	Start   StartCmd         `cmd:"" help:"Start an activity"`
+	Close   CloseCmd         `cmd:"" help:"Close the ongoing activity"`
+	Titles  TitlesCmd        `cmd:"" help:"Print titles of recent closed activities"`
+	Ongoing OngoingCmd       `cmd:"" help:"Show currently ongoing activity"`
+	Last    LastCmd          `cmd:"" help:"Show details of the latest closed activity with given title"`
 	Report  ReportCmd        `cmd:"" help:"Show time usage report"`
 	Server  ServerCmd        `cmd:"" help:"Start a server"`
 }

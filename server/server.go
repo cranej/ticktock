@@ -82,20 +82,20 @@ func (env *Env) apiRecent(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	writeJson(w, titles)
 }
 
-func (env *Env) apiLastEntry(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (env *Env) apiLastActivity(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	title := ps.ByName("title")
-	last, err := env.Store.LastFinished(title)
+	last, err := env.Store.LastClosed(title)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if last == nil {
-		http.Error(w, "No such entry.", http.StatusNotFound)
+		http.Error(w, "No such activity.", http.StatusNotFound)
 		return
 	}
 
-	t, err := template.New("entry").Parse(`<h2>{{.Title}}</h2>
+	t, err := template.New("activity").Parse(`<h2>{{.Title}}</h2>
 	<h3>{{.Start.Local.Format "2006-01-02 15:04:05"}} ~ {{.End.Local.Format "2006-01-02 15:04:05"}}</h3>
 	<pre>{{.Notes}}</pre>`)
 	if err != nil {
@@ -112,13 +112,13 @@ func (env *Env) apiLastEntry(w http.ResponseWriter, r *http.Request, ps httprout
 }
 
 func (env *Env) apiOngoing(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	entry, err := env.Store.Ongoing()
+	activity, err := env.Store.Ongoing()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	writeJson(w, entry)
+	writeJson(w, activity)
 }
 
 func (env *Env) apiStart(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -132,14 +132,14 @@ func (env *Env) apiStart(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	w.WriteHeader(http.StatusOK)
 }
 
-func (env *Env) apiFinish(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (env *Env) apiCloseActivity(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	notes, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = env.Store.Finish(string(notes))
+	_, err = env.Store.CloseActivity(string(notes))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -173,13 +173,13 @@ func (env *Env) apiReport(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 
 	startTime, endTime = setTimeAndUTC(startTime, 0, 0, 0), setTimeAndUTC(endTime, 23, 59, 59)
-	entries, err := env.Store.Finished(startTime, endTime, nil)
+	activities, err := env.Store.Closed(startTime, endTime, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	view, err := view.Render(entries, viewType, nil)
+	view, err := view.Render(activities, viewType, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -192,10 +192,10 @@ func (env *Env) Run(addr string) error {
 	router.GET("/", index)
 	router.GET("/static/*filepath", anyFile)
 	router.GET("/api/recent", env.apiRecent)
-	router.GET("/api/latest/:title", env.apiLastEntry)
+	router.GET("/api/latest/:title", env.apiLastActivity)
 	router.GET("/api/ongoing", env.apiOngoing)
 	router.POST("/api/start/:title", env.apiStart)
-	router.POST("/api/finish", env.apiFinish)
+	router.POST("/api/finish", env.apiCloseActivity)
 	router.GET("/api/report/:start/:end", env.apiReport)
 	router.GET("/version", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		io.WriteString(w, version.Version)

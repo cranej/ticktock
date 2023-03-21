@@ -32,13 +32,13 @@ func assertStoreSetup(t *testing.T) Store {
 
 func TestStoreStart(t *testing.T) {
 	ss := assertStoreSetup(t)
-	entry := UnfinishedEntry{
+	activity := OpenActivity{
 		Title: "test title",
 		Start: time.Now().UTC(),
 		Notes: "test notes",
 	}
 
-	if err := ss.Start(&entry); err != nil {
+	if err := ss.Start(&activity); err != nil {
 		t.Fatal(err)
 	}
 
@@ -68,8 +68,8 @@ func TestStoreStart(t *testing.T) {
 		t.Fatal("Does not expect more than 1 rows")
 	}
 
-	if title != entry.Title || notes != entry.Notes ||
-		start != entry.Start.Format(time.RFC3339) || end.Valid {
+	if title != activity.Title || notes != activity.Notes ||
+		start != activity.Start.Format(time.RFC3339) || end.Valid {
 		t.Fatalf("Values do not match, title: %s, start: %s, notes: %s, end: %v",
 			title, start, notes, end)
 	}
@@ -78,23 +78,23 @@ func TestStoreStart(t *testing.T) {
 
 func TestStoreStartOngoingExists(t *testing.T) {
 	ss := assertStoreSetup(t)
-	entry := UnfinishedEntry{
+	activity := OpenActivity{
 		Title: "test title",
 		Start: time.Now().UTC(),
 		Notes: "test notes",
 	}
 
-	if err := ss.Start(&entry); err != nil {
+	if err := ss.Start(&activity); err != nil {
 		t.Fatal(err)
 	}
 
-	entry = UnfinishedEntry{
+	activity = OpenActivity{
 		Title: "test new title",
 		Start: time.Now().UTC(),
 		Notes: "test new notes",
 	}
 
-	err := ss.Start(&entry)
+	err := ss.Start(&activity)
 	if err == nil || !errors.Is(err, ErrOngoingExists) {
 		t.Fatalf("Expects ErrOngoingExists, got: %v", err)
 	}
@@ -102,72 +102,72 @@ func TestStoreStartOngoingExists(t *testing.T) {
 
 func TestStoreStartDuplicate(t *testing.T) {
 	ss := assertStoreSetup(t)
-	entry := UnfinishedEntry{
+	activity := OpenActivity{
 		Title: "test title",
 		Start: time.Now().UTC(),
 		Notes: "test notes",
 	}
 
-	if err := ss.Start(&entry); err != nil {
+	if err := ss.Start(&activity); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := ss.Finish(""); err != nil {
+	if _, err := ss.CloseActivity(""); err != nil {
 		t.Fatal(err)
 	}
 
-	err := ss.Start(&entry)
-	if err == nil || !errors.Is(err, ErrDuplicateEntry) {
-		t.Fatalf("Expects ErrDuplicateEntry, got: %v", err)
+	err := ss.Start(&activity)
+	if err == nil || !errors.Is(err, ErrDuplicateActivity) {
+		t.Fatalf("Expects ErrDuplicateActivity, got: %v", err)
 	}
 }
 
-func TestFinishNoUnfinishedEntry(t *testing.T) {
+func TestCloseActivityNoOpenActivity(t *testing.T) {
 	ss := assertStoreSetup(t)
-	title, err := ss.Finish("")
+	title, err := ss.CloseActivity("")
 
 	if err != nil || title != "" {
 		t.Fatalf("Should return (\"\", nil), but got: (%s, %v)", title, err)
 	}
 }
 
-func TestNoOngingEntry(t *testing.T) {
+func TestNoOngingActivity(t *testing.T) {
 	ss := assertStoreSetup(t)
-	entry, err := ss.Ongoing()
+	activity, err := ss.Ongoing()
 
-	if err != nil || entry != nil {
-		t.Fatalf("Should return (nil, nil), but got: (%v, %v)", entry, err)
+	if err != nil || activity != nil {
+		t.Fatalf("Should return (nil, nil), but got: (%v, %v)", activity, err)
 	}
 }
 
-func TestNoLastFinished(t *testing.T) {
+func TestNoLastClosed(t *testing.T) {
 	ss := assertStoreSetup(t)
-	entry, err := ss.LastFinished("test")
+	activity, err := ss.LastClosed("test")
 
-	if err != nil || entry != nil {
-		t.Fatalf("Should return (nil, nil), but got: (%v, %v)", entry, err)
+	if err != nil || activity != nil {
+		t.Fatalf("Should return (nil, nil), but got: (%v, %v)", activity, err)
 	}
 }
 
-func TestFinishedQueryByNoneUTCTime(t *testing.T) {
+func TestClosedQueryByNoneUTCTime(t *testing.T) {
 	ss := assertStoreSetup(t)
 
 	loc := time.FixedZone("UTC-8", -8*60*60)
 	start := time.Date(2009, time.November, 10, 23, 0, 0, 0, loc)
 	end := time.Date(2009, time.November, 11, 23, 0, 0, 0, loc)
 
-	entries, err := ss.Finished(start, end.UTC(), nil)
-	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
+	activities, err := ss.Closed(start, end.UTC(), nil)
+	if !errors.Is(err, errTimeShouldBeUTC) || activities != nil {
 		t.Fatal("Should fail on none UTC time query.")
 	}
 
-	entries, err = ss.Finished(start.UTC(), end, nil)
-	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
+	activities, err = ss.Closed(start.UTC(), end, nil)
+	if !errors.Is(err, errTimeShouldBeUTC) || activities != nil {
 		t.Fatal("Should fail on none UTC time query.")
 	}
 
-	entries, err = ss.Finished(start, end, nil)
-	if !errors.Is(err, errTimeShouldBeUTC) || entries != nil {
+	activities, err = ss.Closed(start, end, nil)
+	if !errors.Is(err, errTimeShouldBeUTC) || activities != nil {
 		t.Fatal("Should fail on none UTC time query.")
 	}
 }

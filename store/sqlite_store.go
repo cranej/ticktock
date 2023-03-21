@@ -12,13 +12,13 @@ type sqlite struct {
 	db *sql.DB
 }
 
-func (s *sqlite) Start(entry *UnfinishedEntry) error {
-	start := entry.Start.Format(time.RFC3339)
+func (s *sqlite) Start(activity *OpenActivity) error {
+	start := activity.Start.Format(time.RFC3339)
 
 	var count uint
 	row := s.db.QueryRow(`select count(1) from clocking
 		where end is null`,
-		entry.Title)
+		activity.Title)
 	if err := row.Scan(&count); err != nil {
 		return err
 	}
@@ -29,33 +29,33 @@ func (s *sqlite) Start(entry *UnfinishedEntry) error {
 	var exists uint
 	row = s.db.QueryRow(`select count(1) from clocking
 		where title = ? and start = ?`,
-		entry.Title,
+		activity.Title,
 		start)
 	if err := row.Scan(&exists); err != nil {
 		return err
 	}
 	if exists > 0 {
-		return ErrDuplicateEntry
+		return ErrDuplicateActivity
 	}
 
 	_, err := s.db.Exec(`INSERT INTO clocking (title, start, notes)
 	VALUES(?,?,?)`,
-		entry.Title,
+		activity.Title,
 		start,
-		entry.Notes)
+		activity.Notes)
 
 	return err
 }
 
 func (s *sqlite) StartTitle(title, notes string) error {
-	return s.Start(&UnfinishedEntry{
+	return s.Start(&OpenActivity{
 		Title: title,
 		Start: time.Now().UTC(),
 		Notes: notes,
 	})
 }
 
-func (s *sqlite) Finish(notes string) (string, error) {
+func (s *sqlite) CloseActivity(notes string) (string, error) {
 	row := s.db.QueryRow(`update clocking
 		set end = ?, notes = IFNULL(notes, '')||?
 		where id in (
@@ -98,7 +98,7 @@ func (s *sqlite) RecentTitles(limit uint8) ([]string, error) {
 	return titles, nil
 }
 
-func (s *sqlite) Ongoing() (*UnfinishedEntry, error) {
+func (s *sqlite) Ongoing() (*OpenActivity, error) {
 	row := s.db.QueryRow(`SELECT title, start, notes
 		from clocking
 		where end is null`)
@@ -117,10 +117,10 @@ func (s *sqlite) Ongoing() (*UnfinishedEntry, error) {
 		return nil, err
 	}
 
-	return &UnfinishedEntry{title, startTime, notes}, nil
+	return &OpenActivity{title, startTime, notes}, nil
 }
 
-func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
+func (s *sqlite) LastClosed(title string) (*ClosedActivity, error) {
 	row := s.db.QueryRow(`SELECT title, start, end, notes
 		FROM clocking
 		WHERE id in (
@@ -146,13 +146,13 @@ func (s *sqlite) LastFinished(title string) (*FinishedEntry, error) {
 		return nil, err
 	}
 
-	result := FinishedEntry{&UnfinishedEntry{title_, startTime, notes}, endTime}
+	result := ClosedActivity{&OpenActivity{title_, startTime, notes}, endTime}
 	return &result, nil
 }
 
 var errTimeShouldBeUTC = errors.New("parameters should be in UTC")
 
-func (s *sqlite) Finished(start, end time.Time, filter *QueryArg) ([]FinishedEntry, error) {
+func (s *sqlite) Closed(start, end time.Time, filter *QueryArg) ([]ClosedActivity, error) {
 	_, soffset := start.Zone()
 	_, eoffset := end.Zone()
 	if soffset != 0 || eoffset != 0 {
@@ -192,7 +192,7 @@ func (s *sqlite) Finished(start, end time.Time, filter *QueryArg) ([]FinishedEnt
 		return nil, err
 	}
 
-	entries := make([]FinishedEntry, 0)
+	activities := make([]ClosedActivity, 0)
 	for rows.Next() {
 		var title, start, end, notes string
 		if err := rows.Scan(&title, &start, &end, &notes); err != nil {
@@ -209,13 +209,13 @@ func (s *sqlite) Finished(start, end time.Time, filter *QueryArg) ([]FinishedEnt
 			return nil, err
 		}
 
-		entries = append(entries, FinishedEntry{
-			&UnfinishedEntry{title, startTime, notes},
+		activities = append(activities, ClosedActivity{
+			&OpenActivity{title, startTime, notes},
 			endTime,
 		})
 	}
 
-	return entries, nil
+	return activities, nil
 }
 
 func newSqlite(db string) (sqlite, error) {

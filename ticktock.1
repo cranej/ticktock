@@ -1,0 +1,105 @@
+.TH TICKTOCK 1 ticktock
+.SH NAME
+ticktock \- helps tracking your daily time usage
+.SH SYNOPSIS
+.B ticktock
+--db=STRING <command>
+.SH DESCRIPTION
+.B ticktock
+tracks activities. An
+.I activity
+is "a thing during a certain time frame". For example, at 2023 Jan 1st,
+you did gym from 9:15am to 10:15am, read a book from 10:30am to 11:45am, and then
+did gym again from 2:00pm to 3:00pm. These are
+.B three
+activities - gym at different time frame are different activities. However, if you use
+.I report
+command to see the time usage of the day, the two gym activities are aggregated and shows
+that you spent 2 hours on gym at the day.
+.PP
+A typical workflow might be - when you start working on an activity, use
+.I start
+command to start tracking it, you can optionally specify notes of the activity.
+When you stop working on it, use
+.I close
+command to log the stopping time, optionally with additional notes to add.
+.I Report
+command provides various views to let you review what you have done in given
+date range.
+.PP
+Command
+.I start,
+.I close
+and
+.I last
+accept a
+.B --title\ <title>
+option. If not given, ticktock prompts you to select one from titles of recent closed activities.
+.PP
+Command
+.I start
+and
+.I close
+accept repeatable
+.B --notes\ <note>
+option. Each note will be stored as a separate line. If a single
+.B --notes\ -
+is given, ticktock read notes from
+.I stdin
+until
+.I Ctrl-D
+encountered.
+.SH OPTIONS
+.TP
+.B --db database file path
+ticktock stores data in a single file, this option specified the path. If environment
+.B TICKTOCK_DB
+is not set, the option is required by all commands.
+.SH COMMANDS
+For each command, use
+.NF
+.B ticktock <command> --help
+.FI
+to see detailed usage.
+
+.TP
+.B start
+starts an activity
+
+.TP
+.B close
+close an activity
+
+.TP
+.B titles
+shows titles of recently closed activities
+
+.TP
+.B ongoing
+shows current ongoing activity
+
+.TP
+.B last
+shows details of the latest closed activity, useful to view notes of an activity
+
+.TP
+.B report
+shows time usage report
+
+.TP
+.B server
+starts a http server, provides a web based interface
+
+.SH ENVIRONMENT
+.TP
+.B TICKTOCK_DB
+specify the full path of the database file. With this environment set, you can omit
+[
+--db <file path>
+]
+option, which is otherwise required by all commands
+
+.SH AUTHORS
+Written by Crane Jin <crane@cranejin.com> in 2023.
+.SH LICENSE
+GPLv3

@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-type KeyFunc func(*store.FinishedEntry) string
+type KeyFunc func(*store.ClosedActivity) string
 type Impl interface {
 	String() string
 }
-type Creator func([]store.FinishedEntry, KeyFunc) Impl
+type Creator func([]store.ClosedActivity, KeyFunc) Impl
 
 var registry map[string]Creator = make(map[string]Creator)
 
@@ -32,9 +32,9 @@ func Register(viewType string, viewFunc Creator) error {
 	return nil
 }
 
-func Render(entries []store.FinishedEntry, viewType string, keyF KeyFunc) (string, error) {
+func Render(activities []store.ClosedActivity, viewType string, keyF KeyFunc) (string, error) {
 	if keyF == nil {
-		keyF = func(e *store.FinishedEntry) string { return e.Title }
+		keyF = func(e *store.ClosedActivity) string { return e.Title }
 	}
 
 	viewF, ok := registry[viewType]
@@ -42,7 +42,7 @@ func Render(entries []store.FinishedEntry, viewType string, keyF KeyFunc) (strin
 		return "", fmt.Errorf("unknown viewType %s", viewType)
 	}
 
-	return viewF(entries, keyF).String(), nil
+	return viewF(activities, keyF).String(), nil
 }
 
 var round time.Duration = time.Duration(time.Minute)
@@ -54,10 +54,10 @@ func durS(d time.Duration) string {
 
 type Summary map[string]map[string]time.Duration
 
-func NewSummary(entries []store.FinishedEntry, keyF KeyFunc) Impl {
+func NewSummary(activities []store.ClosedActivity, keyF KeyFunc) Impl {
 	summary := make(Summary)
 
-	for _, e := range entries {
+	for _, e := range activities {
 		day := e.Start.Local().Format(time.DateOnly)
 		dayMap, ok := summary[day]
 		if !ok {
@@ -90,20 +90,20 @@ func (s Summary) String() string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-type Detail map[string][]*store.FinishedEntry
+type Detail map[string][]*store.ClosedActivity
 
-func NewDetail(entries []store.FinishedEntry, keyF KeyFunc) Impl {
+func NewDetail(activities []store.ClosedActivity, keyF KeyFunc) Impl {
 	detail := make(Detail)
 
-	for i, e := range entries {
+	for i, e := range activities {
 		key := keyF(&e)
-		entrySlice, ok := detail[key]
+		slice, ok := detail[key]
 		if !ok {
-			entrySlice = make([]*store.FinishedEntry, 0)
+			slice = make([]*store.ClosedActivity, 0)
 		}
 
-		entrySlice = append(entrySlice, &entries[i])
-		detail[key] = entrySlice
+		slice = append(slice, &activities[i])
+		detail[key] = slice
 	}
 
 	return detail
@@ -113,10 +113,10 @@ func (d Detail) String() string {
 	layout := "2006-01-02 Mon 15:04"
 	short := "15:04"
 	var b strings.Builder
-	for title, entrySlice := range d {
+	for title, activities := range d {
 		fmt.Fprintln(&b, title)
 
-		for _, e := range entrySlice {
+		for _, e := range activities {
 			fmt.Fprintf(&b, "  %s ~ %s | %s\n",
 				e.Start.Local().Format(layout),
 				e.End.Local().Format(short),
@@ -131,9 +131,9 @@ func (d Detail) String() string {
 
 type Efforts map[string]time.Duration
 
-func NewEfforts(entries []store.FinishedEntry, keyF KeyFunc) Impl {
+func NewEfforts(activities []store.ClosedActivity, keyF KeyFunc) Impl {
 	efforts := make(Efforts)
-	for _, e := range entries {
+	for _, e := range activities {
 		key := keyF(&e)
 		efforts[key] = efforts[key] + e.End.Sub(e.Start)
 	}
@@ -150,24 +150,24 @@ func (eff Efforts) String() string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-type Distribution map[string][]*store.FinishedEntry
+type Distribution map[string][]*store.ClosedActivity
 
 const IDLE_TITLE string = "<idle>"
 
-func NewDist(entries []store.FinishedEntry, keyF KeyFunc) Impl {
+func NewDist(activities []store.ClosedActivity, keyF KeyFunc) Impl {
 	dist := make(Distribution)
 
-	for _, e := range entries {
+	for _, e := range activities {
 		day := e.Start.Local().Format(time.DateOnly)
 		daySlice, ok := dist[day]
 		if !ok {
-			daySlice = make([]*store.FinishedEntry, 0, 1)
+			daySlice = make([]*store.ClosedActivity, 0, 1)
 		}
 
-		// Do not modify input entries here
-		daySlice = append(daySlice, &store.FinishedEntry{
-			UnfinishedEntry: &store.UnfinishedEntry{Title: keyF(&e), Start: e.Start, Notes: ""},
-			End:             e.End,
+		// Do not modify input activities here
+		daySlice = append(daySlice, &store.ClosedActivity{
+			OpenActivity: &store.OpenActivity{Title: keyF(&e), Start: e.Start, Notes: ""},
+			End:          e.End,
 		})
 		dist[day] = daySlice
 	}
@@ -209,24 +209,24 @@ func (d Distribution) String() string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-func fillIdles(entries []*store.FinishedEntry, start, end time.Time) []*store.FinishedEntry {
-	result := make([]*store.FinishedEntry, 0, len(entries))
-	for i, d := range entries {
+func fillIdles(activities []*store.ClosedActivity, start, end time.Time) []*store.ClosedActivity {
+	result := make([]*store.ClosedActivity, 0, len(activities))
+	for i, d := range activities {
 		if d.Start.After(start) {
-			result = append(result, &store.FinishedEntry{
-				UnfinishedEntry: &store.UnfinishedEntry{Title: IDLE_TITLE, Start: start, Notes: ""},
-				End:             d.Start,
+			result = append(result, &store.ClosedActivity{
+				OpenActivity: &store.OpenActivity{Title: IDLE_TITLE, Start: start, Notes: ""},
+				End:          d.Start,
 			})
 		}
 
-		result = append(result, entries[i])
+		result = append(result, activities[i])
 		start = d.End
 	}
 
 	if end.After(start) {
-		result = append(result, &store.FinishedEntry{
-			UnfinishedEntry: &store.UnfinishedEntry{Title: IDLE_TITLE, Start: start, Notes: ""},
-			End:             end,
+		result = append(result, &store.ClosedActivity{
+			OpenActivity: &store.OpenActivity{Title: IDLE_TITLE, Start: start, Notes: ""},
+			End:          end,
 		})
 	}
 

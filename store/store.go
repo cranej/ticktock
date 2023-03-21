@@ -7,36 +7,36 @@ import (
 	"time"
 )
 
-type UnfinishedEntry struct {
+type OpenActivity struct {
 	Title string
 	Start time.Time
 	Notes string
 }
 
-type FinishedEntry struct {
-	*UnfinishedEntry
+type ClosedActivity struct {
+	*OpenActivity
 	End time.Time
 }
 
-func (entry *FinishedEntry) String() string {
+func (activity *ClosedActivity) String() string {
 	var notes strings.Builder
-	for _, s := range strings.Split(entry.Notes, "\n") {
+	for _, s := range strings.Split(activity.Notes, "\n") {
 		fmt.Fprintf(&notes, "    %s\n", s)
 	}
 
 	return fmt.Sprintf("%s\n%s ~ %s\n%s",
-		entry.Title,
-		entry.Start.Local().Format(time.DateTime),
-		entry.End.Local().Format(time.DateTime),
+		activity.Title,
+		activity.Start.Local().Format(time.DateTime),
+		activity.End.Local().Format(time.DateTime),
 		strings.TrimRight(notes.String(), "\n"))
 }
 
-func (entry *FinishedEntry) Tag() string {
-	return strings.SplitN(entry.Title, ": ", 2)[0]
+func (activity *ClosedActivity) Tag() string {
+	return strings.SplitN(activity.Title, ": ", 2)[0]
 }
 
-var ErrOngoingExists = errors.New("ongoing entry exists")
-var ErrDuplicateEntry = errors.New("entry already started")
+var ErrOngoingExists = errors.New("ongoing activity exists")
+var ErrDuplicateActivity = errors.New("activity already started")
 
 type QueryArg struct {
 	values []string
@@ -82,35 +82,35 @@ func (q *QueryArg) IsTag() bool {
 }
 
 type Store interface {
-	// Start an entry.
-	//  1. No new entry allowed if there is already an ongoing (unfinished) entry exists.
-	//  2. Entry considered as duplicated and is not allowed to start,
-	//     if there is already an entry with the same Title and Start.
-	Start(*UnfinishedEntry) error
+	// Start an activity.
+	//  1. No new activity allowed if there is already an open activity exists.
+	//  2. activity considered as duplicated and is not allowed to start,
+	//     if there is already an activity with the same Title and Start.
+	Start(*OpenActivity) error
 
-	// StartTitle starts an entry with given title and notes, and 'now' as Start.
+	// StartTitle starts an activity with given title and notes, and 'now' as Start.
 	StartTitle(title, note string) error
 
-	// Finish finishes the unfinished entry (if any).
+	// CloseActivity closes the open activity (if any).
 	// If there was one, return it's title.
-	// If no unfinished entry to finish, return empty string. This case is not treated as error.
-	Finish(notes string) (string, error)
+	// If no open activity to close, return empty string. This case is not treated as error.
+	CloseActivity(notes string) (string, error)
 
-	// RecentTitles returns at most 'limit' number of distinct titles of recent finished entries.
+	// RecentTitles returns at most 'limit' number of distinct titles of recent closed activities.
 	RecentTitles(limit uint8) ([]string, error)
 
-	// Ongoing returns the ongoing entry (if any), otherwise return nil.
-	Ongoing() (*UnfinishedEntry, error)
+	// Ongoing returns the open activity (if any), otherwise return nil.
+	Ongoing() (*OpenActivity, error)
 
-	// LastFinished returns the finished entry with the latest Start of given title, if any. Otherwise return nil.
-	LastFinished(title string) (*FinishedEntry, error)
+	// LastClosed returns the closed activity with the latest Start of given title, if any. Otherwise return nil.
+	LastClosed(title string) (*ClosedActivity, error)
 
-	// Finished queries entries with condition 'Start >= queryStart and Start <= queryEnd'.
+	// Closed queries activities with condition 'Start >= queryStart and Start <= queryEnd'.
 	// Both queryStart and queryEnd must be UTC time
 	// If filter is not nil:
-	//   if filter is title filter, only returns entries with 'title in filter.values'.
-	//   if filter is tag filter, returns entries with 'FinishedEntry.Tag() in filter.values'.
-	Finished(queryStart, queryEnd time.Time, filter *QueryArg) ([]FinishedEntry, error)
+	//   if filter is title filter, only returns activities with 'title in filter.values'.
+	//   if filter is tag filter, returns activities with 'ClosedActivity.Tag() in filter.values'.
+	Closed(queryStart, queryEnd time.Time, filter *QueryArg) ([]ClosedActivity, error)
 }
 
 func NewSqliteStore(db string) (Store, error) {

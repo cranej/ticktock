@@ -15,9 +15,9 @@ import (
 )
 
 type StartCmd struct {
-	Wait  bool     `short:"w" help:"If set, wait for notes input until Ctrl-D, then finish the ticktock"`
-	Title string   `arg:"" optional:"" name:"title" help:"The title of the ticktock. Choose from recent titles interactively if not given"`
-	Notes []string `help:"Notes of the ticktock, each input as a line. If a single '-' is given, read from stdin"`
+	Wait  bool     `short:"w" help:"If set, wait for notes input until Ctrl-D, then close the activity"`
+	Title string   `arg:"" optional:"" name:"title" help:"Title of the activity. Choose from recent titles interactively if not given"`
+	Notes []string `help:"Notes of the activity, each input as a line. If a single '-' is given, read from stdin"`
 }
 
 func (c *StartCmd) Run(ss store.Store) error {
@@ -37,43 +37,43 @@ func (c *StartCmd) Run(ss store.Store) error {
 	fmt.Printf("(Started: %s)\n", c.Title)
 
 	if c.Wait {
-		fmt.Println("Waiting for notes input, Ctrl-D ends the input and finish the ticktock:")
+		fmt.Println("Waiting for notes input, Ctrl-D ends the input and close the activity:")
 		notes, err := readToEOF()
 		if err != nil {
-			return fmt.Errorf("failed to read notes: %w, ticktock not finished", err)
+			return fmt.Errorf("failed to read notes: %w, activity is not closed", err)
 		}
 
-		r, err := ss.Finish(notes)
+		r, err := ss.CloseActivity(notes)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("(Finished: %s)\n", r)
+		fmt.Printf("(Closed: %s)\n", r)
 		return nil
 	} else {
 		return nil
 	}
 }
 
-type FinishCmd struct {
+type CloseCmd struct {
 	Notes []string `help:"Notes to appends, each input as a line. If a single '-' is given, read from stdin"`
 }
 
-func (c *FinishCmd) Run(ss store.Store) error {
+func (c *CloseCmd) Run(ss store.Store) error {
 	notes, err := getNotes(c.Notes)
 	if err != nil {
 		return err
 	}
 
-	r, err := ss.Finish(notes)
+	r, err := ss.CloseActivity(notes)
 	if err != nil {
 		return err
 	}
 
 	if len(r) != 0 {
-		fmt.Printf("(Finished: %s)\n", r)
+		fmt.Printf("(Closed: %s)\n", r)
 	} else {
-		fmt.Println("(NothingToFinish)")
+		fmt.Println("(NothingToClose)")
 	}
 	return nil
 }
@@ -112,23 +112,23 @@ type OngoingCmd struct {
 }
 
 func (c *OngoingCmd) Run(ss store.Store) error {
-	entry, err := ss.Ongoing()
+	activity, err := ss.Ongoing()
 	if err != nil {
 		return err
 	}
 
-	if entry == nil {
-		fmt.Println("No ongoing entry.")
+	if activity == nil {
+		fmt.Println("No ongoing activity.")
 		return nil
 	}
 
-	duration := time.Since(entry.Start)
-	fmt.Printf("%s\n%.0f minutes ago\n", entry.Title, duration.Minutes())
+	duration := time.Since(activity.Start)
+	fmt.Printf("%s\n%.0f minutes ago\n", activity.Title, duration.Minutes())
 	return nil
 }
 
 type LastCmd struct {
-	Title string `arg:"" optional:"" help:"Title of the ticktock. Choose interactively if not given"`
+	Title string `arg:"" optional:"" help:"Title of the activity. Choose interactively if not given"`
 }
 
 func (c *LastCmd) Run(ss store.Store) error {
@@ -137,7 +137,7 @@ func (c *LastCmd) Run(ss store.Store) error {
 		return err
 	}
 
-	last, err := ss.LastFinished(title)
+	last, err := ss.LastClosed(title)
 	if err != nil {
 		return err
 	}
@@ -145,17 +145,17 @@ func (c *LastCmd) Run(ss store.Store) error {
 	if last != nil {
 		fmt.Println(last)
 	} else {
-		fmt.Println("No such entry.")
+		fmt.Println("No such activity.")
 	}
 	return nil
 }
 
 type ReportCmd struct {
 	Type  string   `default:"summary" enum:"summary,detail,dist,efforts" help:"Type of the report to show, valid values are: summary, detail, dist (distribution), and efforts"`
-	From  uint16   `short:"f" default:"0" help:"Show report of ticktocks from '@today - From'. For example, '--from 1' shows report from yesterday 00:00:00"`
-	To    uint16   `short:"t" default:"0" help:"Show report of ticktocks to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
+	From  uint16   `short:"f" default:"0" help:"Show report of activities from '@today - From'. For example, '--from 1' shows report from yesterday 00:00:00"`
+	To    uint16   `short:"t" default:"0" help:"Show report of activities to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
 	Title []string `help:"filter by titles"`
-	Tag   bool     `default:"false" help:"if set, --title 'book' queries all entries with title starts with 'book: ' (here, book is the tag of the entry). Also, entries will be aggregated by tag instead of by title"`
+	Tag   bool     `default:"false" help:"if set, --title 'book' queries all activities with title starts with 'book: ' (here, book is the tag of the activity). Also, activities will be aggregated by tag instead of by title"`
 }
 
 func (c *ReportCmd) Run(ss store.Store) error {
@@ -169,16 +169,16 @@ func (c *ReportCmd) Run(ss store.Store) error {
 	} else {
 		arg = store.NewTitleArg(c.Title)
 	}
-	entries, err := ss.Finished(start, end, arg)
+	activities, err := ss.Closed(start, end, arg)
 	if err != nil {
 		return err
 	}
 
-	var keyF func(*store.FinishedEntry) string
+	var keyF func(*store.ClosedActivity) string
 	if c.Tag {
-		keyF = (*store.FinishedEntry).Tag
+		keyF = (*store.ClosedActivity).Tag
 	}
-	view, err := view.Render(entries, c.Type, keyF)
+	view, err := view.Render(activities, c.Type, keyF)
 	if err != nil {
 		return err
 	}
