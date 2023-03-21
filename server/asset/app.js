@@ -25,14 +25,14 @@ createApp({
             const url = '/api/recent/';
             this.recentTitles = await (await fetch(url)).json()
         },
-        async getUnfinished() {
-            const url = '/api/unfinished/';
+        async getOngoing() {
+            const url = '/api/ongoing/';
             this.ongoing = await (await fetch(url)).json();
         },
 
         getData() {
             this.getRecent();
-            this.getUnfinished();
+            this.getOngoing();
             this.error = null;
         },
         async start(title) {
@@ -67,7 +67,7 @@ createApp({
             if (dayStart == "" || dayEnd == "") {
                 this.error = "Query start and end must be specified.";
             } else {
-                let url = `/api/report-by-date/${dayStart}/${dayEnd}?view_type=${viewType}`;
+                let url = `/api/report/${dayStart}/${dayEnd}?view_type=${viewType}`;
                 this.report = await (await fetch(url)).text();
             }
         },

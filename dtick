@@ -1,0 +1,25 @@
+#!/bin/sh
+# Script for dmenu integration. Notes that if you are using dmenu with tilling
+# window manager like dwm or i3, *before* window manager starts,
+# path of ticktock needs to be included in PATH, and TICKTOCK_DB environment needs
+# to be set, as dmenu is forked by these window manager and does not aware any environments
+# set after window manager started.
+
+cmd="ticktock"
+
+signaldw() {
+	pkill -RTMIN+11 dwmblocks
+}
+
+case $(printf "start\nfinish\nongoing\n" | dmenu -p "Action: ") in
+  start)
+    title=$($cmd titles -n 10 -i | dmenu -p "Title: ");
+    title=${title#*: };
+    [[ -n "$title" ]] && $cmd start "$title" &&\
+		notify-send -t 3000 "Started:" "$title" && signaldw;;
+  finish) $cmd finish && signaldw;;
+  ongoing)
+    ongoing=$($cmd ongoing);
+    notify-send -t 5000 "Ongoing:" "$ongoing" ;;
+esac
+

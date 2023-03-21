@@ -82,7 +82,7 @@ func (env *Env) apiRecent(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	writeJson(w, titles)
 }
 
-func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (env *Env) apiLastEntry(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	title := ps.ByName("title")
 	last, err := env.Store.LastFinished(title)
 	if err != nil {
@@ -111,7 +111,7 @@ func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	io.WriteString(w, out.String())
 }
 
-func (env *Env) apiUnfinished(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (env *Env) apiOngoing(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	entry, err := env.Store.Ongoing()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -192,11 +192,11 @@ func (env *Env) Run(addr string) error {
 	router.GET("/", index)
 	router.GET("/static/*filepath", anyFile)
 	router.GET("/api/recent", env.apiRecent)
-	router.GET("/api/latest/:title", env.apiLatest)
-	router.GET("/api/unfinished", env.apiUnfinished)
+	router.GET("/api/latest/:title", env.apiLastEntry)
+	router.GET("/api/ongoing", env.apiOngoing)
 	router.POST("/api/start/:title", env.apiStart)
 	router.POST("/api/finish", env.apiFinish)
-	router.GET("/api/report-by-date/:start/:end", env.apiReport)
+	router.GET("/api/report/:start/:end", env.apiReport)
 	router.GET("/version", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		io.WriteString(w, version.Version)
 	})
