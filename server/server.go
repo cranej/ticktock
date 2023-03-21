@@ -90,6 +90,11 @@ func (env *Env) apiLatest(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
+	if last == nil {
+		http.Error(w, "No such entry.", http.StatusNotFound)
+		return
+	}
+
 	t, err := template.New("entry").Parse(`<h2>{{.Title}}</h2>
 	<h3>{{.Start.Local.Format "2006-01-02 15:04:05"}} ~ {{.End.Local.Format "2006-01-02 15:04:05"}}</h3>
 	<pre>{{.Notes}}</pre>`)

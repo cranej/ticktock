@@ -142,7 +142,11 @@ func (c *LastCmd) Run(ss store.Store) error {
 		return err
 	}
 
-	fmt.Println(last.Format())
+	if last != nil {
+		fmt.Println(last)
+	} else {
+		fmt.Println("No such entry.")
+	}
 	return nil
 }
 

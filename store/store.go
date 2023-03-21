@@ -18,7 +18,7 @@ type FinishedEntry struct {
 	End time.Time
 }
 
-func (entry *FinishedEntry) Format() string {
+func (entry *FinishedEntry) String() string {
 	var notes strings.Builder
 	for _, s := range strings.Split(entry.Notes, "\n") {
 		fmt.Fprintf(&notes, "    %s\n", s)
