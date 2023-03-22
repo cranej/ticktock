@@ -1,4 +1,4 @@
-.TH TICKTOCK 1 ticktock
+.TH TICKTOCK 1 "2023-03-22" ticktock
 .SH NAME
 ticktock \- helps tracking your daily time usage
 .SH SYNOPSIS
@@ -98,7 +98,27 @@ specify the full path of the database file. With this environment set, you can o
 --db <file path>
 ]
 option, which is otherwise required by all commands
-
+.SH DMENU INTEGRATION
+The provided shell script
+.B dtick
+aims to integrate ticktock with
+.I dmenu.
+.PP
+Notes that if you are using
+.I dmenu
+with tilling window manager like
+.I dwm
+or
+.I i3,
+.I before
+window manager starts, path where ticktock is installed needs to be included in
+.I PATH,
+and
+.I TICKTOCK_DB
+environment needs to be set. In this case
+.I dmenu
+is forked by these window managers and does not aware any environment that is set after
+window manager started
 .SH AUTHORS
 Written by Crane Jin <crane@cranejin.com> in 2023.
 .SH LICENSE

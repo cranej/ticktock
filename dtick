@@ -1,5 +1,5 @@
 #!/bin/sh
-# Script for dmenu integration. Notes that if you are using dmenu with tilling
+# Script for dmenu integration. Note that if you are using dmenu with tilling
 # window manager like dwm or i3, *before* window manager starts,
 # path of ticktock needs to be included in PATH, and TICKTOCK_DB environment needs
 # to be set, as dmenu is forked by these window manager and does not aware any environments
