@@ -223,6 +223,11 @@ func fillIdles(activities []*store.ClosedActivity, start, end time.Time) []*stor
 		start = d.End
 	}
 
+	// for today's activities, make end no later than now
+	now := time.Now()
+	if end.After(now) {
+		end = now
+	}
 	if end.After(start) {
 		result = append(result, &store.ClosedActivity{
 			OpenActivity: &store.OpenActivity{Title: IDLE_TITLE, Start: start, Notes: ""},
