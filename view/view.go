@@ -212,7 +212,8 @@ func (d Distribution) String() string {
 func fillIdles(activities []*store.ClosedActivity, start, end time.Time) []*store.ClosedActivity {
 	result := make([]*store.ClosedActivity, 0, len(activities))
 	for i, d := range activities {
-		if d.Start.After(start) {
+		// ignore idles less than 1 minute
+		if d.Start.Sub(start) >= time.Minute {
 			result = append(result, &store.ClosedActivity{
 				OpenActivity: &store.OpenActivity{Title: IDLE_TITLE, Start: start, Notes: ""},
 				End:          d.Start,
@@ -228,7 +229,7 @@ func fillIdles(activities []*store.ClosedActivity, start, end time.Time) []*stor
 	if end.After(now) {
 		end = now
 	}
-	if end.After(start) {
+	if end.Sub(start) >= time.Minute {
 		result = append(result, &store.ClosedActivity{
 			OpenActivity: &store.OpenActivity{Title: IDLE_TITLE, Start: start, Notes: ""},
 			End:          end,
