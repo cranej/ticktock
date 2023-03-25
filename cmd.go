@@ -182,7 +182,10 @@ func (c *ReportCmd) Run(ss store.Store) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(view)
+
+	if view != "" {
+		fmt.Println(view)
+	}
 	return nil
 }
 
