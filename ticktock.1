@@ -1,4 +1,4 @@
-.TH TICKTOCK 1 "2023-03-22" ticktock
+.TH TICKTOCK 1 "2023-03-25" ticktock
 .SH NAME
 ticktock \- helps tracking your daily time usage
 .SH SYNOPSIS
@@ -88,8 +88,29 @@ shows time usage report
 
 .TP
 .B server
-starts a http server, provides a web based interface
-
+starts a HTTP server, provides a web based interface
+.SH TAG
+Command
+.I report
+understands tags of activities.
+.PP
+When
+.B --tag
+is on, if the title of an activity is in the format of
+.B "xxx: yyy",
+.I xxx
+is treated as the
+.I tag
+of the activity - note that there is a space after the colon. Otherwise the
+title itself is treated as
+.I tag.
+.PP
+.I Tag
+provides the ability to group logical realted activities for reporting. For example,
+you are learning English, you can track activities like
+"en:\ listening", "en:\ grammar", "en:\ vocabulary". Then
+.B report\ --tag
+will group all these activities together, and show you how many time you have spent on "en".
 .SH ENVIRONMENT
 .TP
 .B TICKTOCK_DB
