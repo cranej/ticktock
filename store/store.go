@@ -111,6 +111,9 @@ type Store interface {
 	//   if filter is title filter, only returns activities with 'title in filter.values'.
 	//   if filter is tag filter, returns activities with 'ClosedActivity.Tag() in filter.values'.
 	Closed(queryStart, queryEnd time.Time, filter *QueryArg) ([]ClosedActivity, error)
+
+	// Add adds a ClosedActivity. Returns error when there is already an activity with the same Title and Start.
+	Add(activity *ClosedActivity) error
 }
 
 func NewSqliteStore(db string) (Store, error) {

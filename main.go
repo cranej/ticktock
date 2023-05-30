@@ -16,6 +16,7 @@ var Cli struct {
 	Last    LastCmd          `cmd:"" help:"Show details of the latest closed activity with given title"`
 	Report  ReportCmd        `cmd:"" help:"Show time usage report"`
 	Server  ServerCmd        `cmd:"" help:"Start a server"`
+	Add     AddCmd           `cmd:"" helo:"Add an closed activity"`
 }
 
 func main() {

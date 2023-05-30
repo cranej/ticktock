@@ -218,6 +218,31 @@ func (s *sqlite) Closed(start, end time.Time, filter *QueryArg) ([]ClosedActivit
 	return activities, nil
 }
 
+func (s *sqlite) Add(activity *ClosedActivity) error {
+	start := activity.Start.Format(time.RFC3339)
+	var exists uint
+	row := s.db.QueryRow(`select count(1) from clocking
+		where title = ? and start = ?`,
+		activity.Title,
+		start)
+	if err := row.Scan(&exists); err != nil {
+		return err
+	}
+	if exists > 0 {
+		return ErrDuplicateActivity
+	}
+
+	end := activity.End.Format(time.RFC3339)
+	_, err := s.db.Exec(`INSERT INTO clocking (title, start, end, notes)
+	VALUES(?,?,?,?)`,
+		activity.Title,
+		start,
+		end,
+		activity.Notes)
+
+	return err
+}
+
 func newSqlite(db string) (sqlite, error) {
 	pool, err := sql.Open("sqlite3", db)
 	if err != nil {

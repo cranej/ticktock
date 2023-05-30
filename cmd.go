@@ -198,6 +198,39 @@ func (c *ServerCmd) Run(ss store.Store) error {
 	return env.Run(c.Addr)
 }
 
+type AddCmd struct {
+	Title string   `arg:"" optional:"" name:"title" help:"Title of the activity. Choose from recent titles interactively if not given"`
+	Start string   `required:"" help:"Start time of activity, accpets 'HH:mm', 'dd HH:mm', 'MM-dd HH:mm' or 'yyyy-MM-dd HH:mm'"`
+	End   string   `required:"" help:"End time of activity, accepts the same formats as Start"`
+	Notes []string `help:"Notes of the activity, each input as a line. If a single '-' is given, read from stdin"`
+}
+
+func (c *AddCmd) Run(ss store.Store) error {
+	title, err := chooseTitleAsNeed(c.Title, ss)
+	if err != nil {
+		return err
+	}
+
+	notes, err := getNotes(c.Notes)
+	if err != nil {
+		return err
+	}
+
+	start, err := parseImportTime(c.Start)
+	if err != nil {
+		return err
+	}
+
+	end, err := parseImportTime(c.End)
+	if err != nil {
+		return err
+	}
+
+	activity := store.ClosedActivity{&store.OpenActivity{title, start.UTC(), notes}, end.UTC()}
+	return ss.Add(&activity)
+}
+
+// helper functions
 var errCannotReadIndex error = errors.New("cannot read index")
 var errInvalidIndex error = errors.New("invalid index")
 var errNothingToChoose error = errors.New("candidates is empty")
@@ -265,4 +298,32 @@ func getNotes(input []string) (string, error) {
 	} else {
 		return strings.Join(input, "\n"), nil
 	}
+}
+
+const IMPORT_FULL_DT string = "2006-01-02 15:04"
+
+// parseImportTime accepts time in all the following formats:
+//
+//	yyyy-MM-dd HH:mm
+//	MM-dd HH:mm
+//	dd HH:mm
+//	HH:mm
+func parseImportTime(value string) (time.Time, error) {
+	now := time.Now()
+	y, m, d := now.Year(), now.Month(), now.Day()
+	var padded string
+	switch len(value) {
+	case 5:
+		padded = fmt.Sprintf("%d-%02d-%02d %s", y, m, d, value)
+	case 8:
+		padded = fmt.Sprintf("%d-%02d-%s", y, m, value)
+	case 11:
+		padded = fmt.Sprintf("%d-%s", y, value)
+	case 16:
+		padded = value
+	default:
+		return time.UnixMicro(0), errors.New("Unknown time format: " + value)
+	}
+
+	return time.ParseInLocation(IMPORT_FULL_DT, padded, time.Local)
 }
