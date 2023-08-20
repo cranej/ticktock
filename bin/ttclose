@@ -1,0 +1,3 @@
+#!/bin/sh
+
+ticktock close && pkill -RTMIN+11 dwmblocks

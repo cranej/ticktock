@@ -1,0 +1,9 @@
+#!/bin/sh
+
+cmd="ticktock"
+
+title=$($cmd titles -n 10 -i | dmenu -p "Title: ")
+title=${title#*: }
+[[ -n "$title" ]] && $cmd start "$title" &&\
+		notify-send -t 3000 "Started:" "$title" &&\
+		pkill -RTMIN+11 dwmblocks

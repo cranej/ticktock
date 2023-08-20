@@ -1,0 +1,3 @@
+#!/bin/sh
+
+notify-send -t 5000 "Ongoing:" "$(ticktock ongoing)"
