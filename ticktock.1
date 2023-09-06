@@ -51,10 +51,14 @@ until
 encountered.
 .SH OPTIONS
 .TP
-.B --db database file path
-ticktock stores data in a single file, this option specified the path. If environment
-.B TICKTOCK_DB
-is not set, the option is required by all commands.
+.B --db <database file path>
+ticktock stores data in a single file, if not specified from command line, try environment
+.B $TICKTOCK_DB
+if it is set. Otherwise use
+.B $XDG_DATA_HOME/ticktock/db.
+$XDG_DATA_HOME default to
+.B $HOME/.local/share
+if not set.
 .SH COMMANDS
 For each command, use
 .NF
@@ -118,11 +122,9 @@ will group all these activities together, and show you how many time you have sp
 .SH ENVIRONMENT
 .TP
 .B TICKTOCK_DB
-specify the full path of the database file. With this environment set, you can omit
-[
---db <file path>
-]
-option, which is otherwise required by all commands
+specify the full path of the database file. See
+.I OPTIONS
+for detail.
 .SH DMENU INTEGRATION
 The provided shell scripts
 .B ttstart,
@@ -142,9 +144,9 @@ or
 .I before
 window manager starts, path where ticktock is installed needs to be included in
 .I PATH,
-and
+and if you want to specify db path via
 .I TICKTOCK_DB
-environment needs to be set. In this case
+environment, it also needs to be set before window manager starts. In this case
 .I dmenu
 is forked by these window managers and does not aware any environment that is set after
 window manager started
