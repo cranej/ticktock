@@ -7,6 +7,9 @@ ifndef MANPREFIX
   MANPREFIX = $(PREFIX)/share/man
 endif
 
+clean:
+	@rm -f ticktock
+
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	go build -o $(DESTDIR)$(PREFIX)/bin/

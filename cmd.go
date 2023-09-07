@@ -154,12 +154,22 @@ type ReportCmd struct {
 	Type  string   `default:"summary" enum:"summary,detail,dist,efforts" help:"Type of the report to show, valid values are: summary, detail, dist (distribution), and efforts"`
 	From  uint16   `short:"f" default:"0" help:"Show report of activities from '@today - From'. For example, '--from 1' shows report from yesterday 00:00:00"`
 	To    uint16   `short:"t" default:"0" help:"Show report of activities to @today - To. For example, '--to 1' shows report to yesterday 23:59:59"`
+	Week  bool     `short:"w" default:"false" help:"Show report from Monday 0:00:00, ignored if '--from/-f' or '--to/-t' is given"`
+	Month bool     `short:"m" default:"false" help:"Show report from the 1st day 0:00:00 of this month , ignored if '--from/-f' or '--to/-t' or '--week/-w' is given"`
 	Title []string `help:"filter by titles"`
 	Tag   bool     `default:"false" help:"if set, --title 'book' queries all activities with title starts with 'book: ' (here, book is the tag of the activity). Also, activities will be aggregated by tag instead of by title"`
 }
 
 func (c *ReportCmd) Run(ss store.Store) error {
 	now := time.Now()
+	if c.From == 0 && c.To == 0 {
+		if c.Week {
+			// Weeks start from Monday
+			c.From = uint16((now.Weekday() + 7 - 1) % 7)
+		} else if c.Month {
+			c.From = uint16(now.Day() - 1)
+		}
+	}
 	start := time.Date(now.Year(), now.Month(), now.Day()-int(c.From), 0, 0, 0, 0, time.Local).UTC()
 	end := time.Date(now.Year(), now.Month(), now.Day()-int(c.To), 23, 59, 59, 0, time.Local).UTC()
 

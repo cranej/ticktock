@@ -35,7 +35,7 @@ func TestDbPath(t *testing.T) {
 	}
 
 	os.Unsetenv("HOME")
-	p, err = dbPath("")
+	_, err = dbPath("")
 	if err == nil {
 		t.Errorf("Both XDG_DATA_HOME and HOME does not exist, expect error.")
 	}
