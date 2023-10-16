@@ -103,6 +103,7 @@ type Store interface {
 	Ongoing() (*OpenActivity, error)
 
 	// LastClosed returns the closed activity with the latest Start of given title, if any. Otherwise return nil.
+	// If title is empty, return the last closed activity with any title.
 	LastClosed(title string) (*ClosedActivity, error)
 
 	// Closed queries activities with condition 'Start >= queryStart and Start <= queryEnd'.

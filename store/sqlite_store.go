@@ -121,12 +121,20 @@ func (s *sqlite) Ongoing() (*OpenActivity, error) {
 }
 
 func (s *sqlite) LastClosed(title string) (*ClosedActivity, error) {
-	row := s.db.QueryRow(`SELECT title, start, end, notes
+	query := `SELECT title, start, end, notes
 		FROM clocking
 		WHERE id in (
 			SELECT max(id) FROM clocking
-			WHERE title = ? and end IS NOT NULL
-		)`, title)
+			WHERE %s end IS NOT NULL)`
+	params := []any{}
+	if title == "" {
+		query = fmt.Sprintf(query, "")
+	} else {
+		query = fmt.Sprintf(query, "title = ? and ")
+		params = append(params, title)
+	}
+
+	row := s.db.QueryRow(query, params...)
 
 	var title_, start, end, notes string
 	if err := row.Scan(&title_, &start, &end, &notes); err != nil {

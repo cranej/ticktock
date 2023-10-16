@@ -109,6 +109,20 @@ func (c *TitlesCmd) Run(ss store.Store) error {
 }
 
 type OngoingCmd struct {
+	Idle bool `short:"d" help:"If no ongoing activity found, output the idle time since latest closed activity's end time"`
+}
+
+func reportIdle(ss store.Store) (bool, error) {
+	activity, err := ss.LastClosed("")
+	if err != nil {
+		return false, err
+	}
+	if activity == nil {
+		return false, nil
+	}
+
+	fmt.Printf("Idle %.0f minutes\n", time.Since(activity.End).Minutes())
+	return true, nil
 }
 
 func (c *OngoingCmd) Run(ss store.Store) error {
@@ -118,6 +132,16 @@ func (c *OngoingCmd) Run(ss store.Store) error {
 	}
 
 	if activity == nil {
+		if c.Idle {
+			r, err := reportIdle(ss)
+			if err != nil {
+				return err
+			}
+			if r {
+				return nil
+			}
+		}
+
 		fmt.Println("No ongoing activity.")
 		return nil
 	}
