@@ -3,6 +3,7 @@ package view
 import (
 	"fmt"
 	"github.com/cranej/ticktock/store"
+	"github.com/cranej/ticktock/utils"
 	"strings"
 	"time"
 )
@@ -174,11 +175,7 @@ func NewDist(activities []store.ClosedActivity, keyF KeyFunc) Impl {
 
 	for day, daySlice := range dist {
 		dayTime, _ := time.ParseInLocation(time.DateOnly, day, time.Local)
-		dayStart := time.Date(dayTime.Year(), dayTime.Month(), dayTime.Day(),
-			8, 30, 0, 0, time.Local)
-		dayEnd := time.Date(dayTime.Year(), dayTime.Month(), dayTime.Day(),
-			21, 0, 0, 0, time.Local)
-
+		dayStart, dayEnd := utils.DayStartEnd(dayTime)
 		dist[day] = fillIdles(daySlice, dayStart, dayEnd)
 	}
 

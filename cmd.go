@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/cranej/ticktock/server"
 	"github.com/cranej/ticktock/store"
+	"github.com/cranej/ticktock/utils"
 	"github.com/cranej/ticktock/view"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
@@ -121,8 +122,16 @@ func reportIdle(ss store.Store) (bool, error) {
 		return false, nil
 	}
 
-	fmt.Printf("Idle %.0f minutes\n", time.Since(activity.End).Minutes())
-	return true, nil
+	now := time.Now()
+	dayStart, dayEnd := utils.DayStartEnd(time.Now())
+
+	// only report idle if the activity is on today and current time is not after dayEnd
+	if activity.End.After(dayStart) && now.Before(dayEnd) {
+		fmt.Printf("Idle %.0f minutes\n", time.Since(activity.End).Minutes())
+		return true, nil
+	} else {
+		return false, nil
+	}
 }
 
 func (c *OngoingCmd) Run(ss store.Store) error {
