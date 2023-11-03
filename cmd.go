@@ -127,7 +127,7 @@ func reportIdle(ss store.Store) (bool, error) {
 
 	// only report idle if the activity is on today and current time is not after dayEnd
 	if activity.End.After(dayStart) && now.Before(dayEnd) {
-		fmt.Printf("Idle %.0f minutes\n", time.Since(activity.End).Minutes())
+		fmt.Printf("Idle: %.0f minutes\n", time.Since(activity.End).Minutes())
 		return true, nil
 	} else {
 		return false, nil
@@ -156,7 +156,7 @@ func (c *OngoingCmd) Run(ss store.Store) error {
 	}
 
 	duration := time.Since(activity.Start)
-	fmt.Printf("%s\n%.0f minutes ago\n", activity.Title, duration.Minutes())
+	fmt.Printf("%s: %.0f minutes\n", activity.Title, duration.Minutes())
 	return nil
 }
 
