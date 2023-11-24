@@ -118,16 +118,17 @@ func reportIdle(ss store.Store) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if activity == nil {
-		return false, nil
-	}
 
 	now := time.Now()
 	dayStart, dayEnd := utils.DayStartEnd(time.Now())
+	previousEnd := dayStart
+	if activity != nil && activity.End.After(dayStart) {
+		previousEnd = activity.End
+	}
 
 	// only report idle if the activity is on today and current time is not after dayEnd
-	if activity.End.After(dayStart) && now.Before(dayEnd) {
-		fmt.Printf("Idle: %.0f minutes\n", time.Since(activity.End).Minutes())
+	if now.After(dayStart) && now.Before(dayEnd) {
+		fmt.Printf("Idle: %.0f minutes\n", time.Since(previousEnd).Minutes())
 		return true, nil
 	} else {
 		return false, nil
